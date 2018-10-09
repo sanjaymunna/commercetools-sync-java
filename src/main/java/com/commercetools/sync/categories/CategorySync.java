@@ -284,12 +284,11 @@ public class CategorySync extends BaseSync<CategoryDraft, CategorySyncStatistics
     }
 
     /**
-     * This method first gets the parent key either from the expanded category object or from the id field on the
-     * reference and validates it. If its valid, then it checks if the parent category is missing, this is done by
-     * checking if the key exists in the {@code keyToIdCache} map. If it is missing, then it adds the key to the map
-     * {@code statistics#categoryKeysWithMissingParents}, then it returns a category draft identical to the supplied one
-     * but with a {@code null} parent. If it is not missing, then the same identical category draft is returned with the
-     * same parent.
+     * This method first gets the parent key from the id field on the reference and validates it. If its valid, then it
+     * checks if the parent category is missing, this is done by checking if the key exists in the {@code keyToIdCache}
+     * map. If it is missing, then it adds the key to the map {@code statistics#categoryKeysWithMissingParents}, then it
+     * returns a category draft identical to the supplied one but with a {@code null} parent. If it is not missing, then
+     * the same identical category draft is returned with the same parent.
      *
      * @param categoryDraft the category draft to check whether it's parent is missing or not.
      * @param keyToIdCache  the cache containing mapping of all existing category keys to ids.
