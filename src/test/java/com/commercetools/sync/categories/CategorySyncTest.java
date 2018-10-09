@@ -26,7 +26,7 @@ import static com.commercetools.sync.categories.CategorySyncMockUtils.getMockCat
 import static com.commercetools.sync.commons.MockUtils.getMockTypeService;
 import static com.commercetools.sync.commons.MockUtils.mockCategoryService;
 import static com.commercetools.sync.commons.asserts.statistics.AssertionsForStatistics.assertThat;
-import static com.commercetools.sync.commons.helpers.BaseReferenceResolver.BLANK_KEY_VALUE_ON_RESOURCE_IDENTIFIER;
+import static com.commercetools.sync.commons.helpers.BaseReferenceResolver.BLANK_ID_VALUE_ON_RESOURCE_IDENTIFIER;
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
@@ -165,30 +165,6 @@ public class CategorySyncTest {
     }
 
     @Test
-    public void sync_WithExistingCategoryButWithNotAllowedUuidReferenceResolution_ShouldFailSync() {
-        final Category mockCategory = getMockCategory(UUID.randomUUID().toString(), "key");
-        final CategoryService mockCategoryService =
-            mockCategoryService(singleton(mockCategory), emptySet(), mockCategory);
-        final CategorySync categorySync = new CategorySync(categorySyncOptions, getMockTypeService(),
-            mockCategoryService);
-        final List<CategoryDraft> categoryDrafts = singletonList(
-            getMockCategoryDraft(Locale.ENGLISH, "name", "key", UUID.randomUUID().toString(),
-            "customTypeId", new HashMap<>()));
-
-        final CategorySyncStatistics syncStatistics = categorySync.sync(categoryDrafts).toCompletableFuture().join();
-
-        assertThat(syncStatistics).hasValues(1, 0, 0, 1);
-        assertThat(errorCallBackMessages).hasSize(1);
-        assertThat(errorCallBackMessages.get(0)).isEqualTo(format("Failed to resolve references on CategoryDraft with"
-            + " key:'key'. Reason: %s: Failed to resolve parent reference on CategoryDraft"
-            + " with key:'key'. Reason: Found a UUID in the id field. Expecting a key without a UUID"
-            + " value. If you want to allow UUID values for reference keys, please use the allowUuidKeys(true)"
-            + " option in the sync options.", ReferenceResolutionException.class.getCanonicalName()));
-        assertThat(errorCallBackExceptions).hasSize(1);
-        assertThat(errorCallBackExceptions.get(0)).isExactlyInstanceOf(ReferenceResolutionException.class);
-    }
-
-    @Test
     public void sync_WithExistingCategoryButWithNullParentReference_ShouldFailSync() {
         final Category mockCategory = getMockCategory(UUID.randomUUID().toString(), "key");
         final CategoryService mockCategoryService =
@@ -205,7 +181,7 @@ public class CategorySyncTest {
         assertThat(errorCallBackMessages.get(0)).isEqualTo(format("Failed to resolve references on CategoryDraft with"
             + " key:'key'. Reason: %s: Failed to resolve parent reference on CategoryDraft"
             + " with key:'key'. Reason: %s",
-            ReferenceResolutionException.class.getCanonicalName(), BLANK_KEY_VALUE_ON_RESOURCE_IDENTIFIER));
+            ReferenceResolutionException.class.getCanonicalName(), BLANK_ID_VALUE_ON_RESOURCE_IDENTIFIER));
         assertThat(errorCallBackExceptions).hasSize(1);
         assertThat(errorCallBackExceptions.get(0)).isExactlyInstanceOf(ReferenceResolutionException.class);
     }
@@ -250,7 +226,7 @@ public class CategorySyncTest {
         assertThat(errorCallBackMessages.get(0)).isEqualTo(format("Failed to resolve references on CategoryDraft with"
                 + " key:'key'. Reason: %s: Failed to resolve parent reference on CategoryDraft with key:'key'. "
                 + "Reason: %s", ReferenceResolutionException.class.getCanonicalName(),
-            BLANK_KEY_VALUE_ON_RESOURCE_IDENTIFIER));
+            BLANK_ID_VALUE_ON_RESOURCE_IDENTIFIER));
         assertThat(errorCallBackExceptions).hasSize(1);
         assertThat(errorCallBackExceptions.get(0)).isExactlyInstanceOf(ReferenceResolutionException.class);
     }
@@ -272,7 +248,7 @@ public class CategorySyncTest {
         assertThat(errorCallBackMessages).hasSize(1);
         assertThat(errorCallBackMessages.get(0)).isEqualTo(format("Failed to resolve references on CategoryDraft with"
             + " key:'key'. Reason: %s: Failed to resolve custom type reference on CategoryDraft with key:'key'. Reason:"
-                + " %s", ReferenceResolutionException.class.getCanonicalName(), BLANK_KEY_VALUE_ON_RESOURCE_IDENTIFIER));
+                + " %s", ReferenceResolutionException.class.getCanonicalName(), BLANK_ID_VALUE_ON_RESOURCE_IDENTIFIER));
         assertThat(errorCallBackExceptions).hasSize(1);
         assertThat(errorCallBackExceptions.get(0)).isExactlyInstanceOf(CompletionException.class);
         assertThat(errorCallBackExceptions.get(0).getCause()).isExactlyInstanceOf(ReferenceResolutionException.class);

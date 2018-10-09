@@ -13,7 +13,6 @@ import io.sphere.sdk.models.SphereException;
 import io.sphere.sdk.products.ProductDraftBuilder;
 import io.sphere.sdk.states.State;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Objects;
@@ -21,10 +20,10 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static com.commercetools.sync.commons.MockUtils.getMockTypeService;
-import static com.commercetools.sync.commons.helpers.BaseReferenceResolver.BLANK_KEY_VALUE_ON_RESOURCE_IDENTIFIER;
+import static com.commercetools.sync.commons.helpers.BaseReferenceResolver.BLANK_ID_VALUE_ON_RESOURCE_IDENTIFIER;
 import static com.commercetools.sync.inventories.InventorySyncMockUtils.getMockChannelService;
 import static com.commercetools.sync.inventories.InventorySyncMockUtils.getMockSupplyChannel;
-import static com.commercetools.sync.products.ProductSyncMockUtils.getBuilderWithProductTypeRefKey;
+import static com.commercetools.sync.products.ProductSyncMockUtils.getBuilderWithRandomProductTypeUuid;
 import static com.commercetools.sync.products.ProductSyncMockUtils.getMockProductService;
 import static com.commercetools.sync.products.ProductSyncMockUtils.getMockProductTypeService;
 import static com.commercetools.sync.products.ProductSyncMockUtils.getMockStateService;
@@ -35,7 +34,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@Ignore("Until reference resolution is implemented correctly on 'References'.")
 public class StateReferenceResolverTest {
     private static final String CHANNEL_KEY = "channel-key_1";
     private static final String CHANNEL_ID = "1";
@@ -62,7 +60,7 @@ public class StateReferenceResolverTest {
 
     @Test
     public void resolveStateReference_WithKeys_ShouldResolveReference() {
-        final ProductDraftBuilder productBuilder = getBuilderWithProductTypeRefKey("anyProductTypeKey")
+        final ProductDraftBuilder productBuilder = getBuilderWithRandomProductTypeUuid()
             .state(State.referenceOfId("stateKey"));
 
         final ProductDraftBuilder resolvedDraft = referenceResolver.resolveStateReference(productBuilder)
@@ -74,7 +72,7 @@ public class StateReferenceResolverTest {
 
     @Test
     public void resolveStateReference_WithNullState_ShouldNotResolveReference() {
-        final ProductDraftBuilder productBuilder = getBuilderWithProductTypeRefKey("anyProductTypeKey")
+        final ProductDraftBuilder productBuilder = getBuilderWithRandomProductTypeUuid()
             .key("dummyKey");
 
         assertThat(referenceResolver.resolveStateReference(productBuilder).toCompletableFuture())
@@ -84,7 +82,7 @@ public class StateReferenceResolverTest {
 
     @Test
     public void resolveStateReference_WithNonExistentState_ShouldNotResolveReference() {
-        final ProductDraftBuilder productBuilder = getBuilderWithProductTypeRefKey("anyProductTypeKey")
+        final ProductDraftBuilder productBuilder = getBuilderWithRandomProductTypeUuid()
             .state(State.referenceOfId("nonExistentKey"))
             .key("dummyKey");
 
@@ -100,7 +98,7 @@ public class StateReferenceResolverTest {
 
     @Test
     public void resolveStateReference_WithNullIdOnStateReference_ShouldNotResolveReference() {
-        final ProductDraftBuilder productBuilder = getBuilderWithProductTypeRefKey("anyProductTypeKey")
+        final ProductDraftBuilder productBuilder = getBuilderWithRandomProductTypeUuid()
             .state(Reference.of(State.referenceTypeId(), (String)null))
             .key("dummyKey");
 
@@ -109,12 +107,12 @@ public class StateReferenceResolverTest {
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve reference 'state' on ProductDraft with "
-                + "key:'%s'. Reason: %s", productBuilder.getKey(), BLANK_KEY_VALUE_ON_RESOURCE_IDENTIFIER));
+                + "key:'%s'. Reason: %s", productBuilder.getKey(), BLANK_ID_VALUE_ON_RESOURCE_IDENTIFIER));
     }
 
     @Test
     public void resolveStateReference_WithEmptyIdOnStateReference_ShouldNotResolveReference() {
-        final ProductDraftBuilder productBuilder = getBuilderWithProductTypeRefKey("anyProductTypeKey")
+        final ProductDraftBuilder productBuilder = getBuilderWithRandomProductTypeUuid()
             .state(State.referenceOfId(""))
             .key("dummyKey");
 
@@ -123,12 +121,12 @@ public class StateReferenceResolverTest {
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve reference 'state' on ProductDraft with "
-                + "key:'%s'. Reason: %s", productBuilder.getKey(), BLANK_KEY_VALUE_ON_RESOURCE_IDENTIFIER));
+                + "key:'%s'. Reason: %s", productBuilder.getKey(), BLANK_ID_VALUE_ON_RESOURCE_IDENTIFIER));
     }
 
     @Test
     public void resolveStateReference_WithExceptionOnFetch_ShouldNotResolveReference() {
-        final ProductDraftBuilder productBuilder = getBuilderWithProductTypeRefKey("anyProductTypeKey")
+        final ProductDraftBuilder productBuilder = getBuilderWithRandomProductTypeUuid()
             .state(State.referenceOfId("stateKey"))
             .key("dummyKey");
 
