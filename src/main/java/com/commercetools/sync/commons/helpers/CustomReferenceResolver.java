@@ -9,8 +9,6 @@ import io.sphere.sdk.types.CustomDraft;
 import io.sphere.sdk.types.CustomFieldsDraft;
 
 import javax.annotation.Nonnull;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -18,6 +16,7 @@ import java.util.function.Function;
 import static io.sphere.sdk.types.CustomFieldsDraft.ofTypeIdAndJson;
 import static io.sphere.sdk.utils.CompletableFutureUtils.exceptionallyCompletedFuture;
 import static java.lang.String.format;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 
 /**
  * This class is responsible for providing an abstract implementation of reference resolution on Custom CTP
@@ -63,8 +62,8 @@ public abstract class CustomReferenceResolver
      * custom type reference. The key of the custom type is taken from the from the id field of the reference.
      *
      * <p>The method then tries to fetch the key of the custom type, optimistically from a
-     * cache. If the key is is not found, the resultant draft would remain exactly the same as the passed
-     * draft (without a custom type reference resolution).
+     * cache. If the key is not found, a completion stage that is exceptionally completed is returned containing a
+     * {@link ReferenceResolutionException}.
      *
      * @param draftBuilder the draft builder to resolve it's references.
      * @param customGetter a function to return the CustomFieldsDraft instance of the draft builder.
@@ -83,36 +82,27 @@ public abstract class CustomReferenceResolver
 
         final CustomFieldsDraft custom = customGetter.apply(draftBuilder);
         if (custom != null) {
-            return getCustomTypeId(custom, errorMessage)
-                .thenApply(resolvedTypeIdOptional ->
-                    resolvedTypeIdOptional.map(resolvedTypeId ->
-                        customSetter.apply(draftBuilder, ofTypeIdAndJson(resolvedTypeId, custom.getFields())))
-                                          //should throw error if it is empty!!
-                                          .orElse(draftBuilder));
-        }
-        return CompletableFuture.completedFuture(draftBuilder);
-    }
+            String typeKey;
+            try {
+                typeKey = getKeyFromResourceIdentifier(custom.getType());
+            } catch (ReferenceResolutionException exception) {
+                final String exceptionMessage =
+                    format("%s Reason: %s", errorMessage, exception.getMessage());
+                return exceptionallyCompletedFuture(new ReferenceResolutionException(exceptionMessage, exception));
+            }
 
-
-    /**
-     * Given a custom fields object this method fetches the custom type reference id.
-     *
-     * @param custom                          the custom fields object.
-     * @param referenceResolutionErrorMessage the message containing the information about the draft to attach to the
-     *                                        {@link ReferenceResolutionException} in case it occurs.
-     * @return a {@link CompletionStage} that contains as a result an optional which either contains the custom type id
-     *         if it exists or empty if it doesn't.
-     */
-    private CompletionStage<Optional<String>> getCustomTypeId(@Nonnull final CustomFieldsDraft custom,
-                                                              @Nonnull final String referenceResolutionErrorMessage) {
-        try {
-            final String customTypeKey = getKeyFromResourceIdentifier(custom.getType());
-            return typeService.fetchCachedTypeId(customTypeKey);
-        } catch (ReferenceResolutionException exception) {
-            final String errorMessage =
-                format("%s Reason: %s", referenceResolutionErrorMessage, exception.getMessage());
-            return exceptionallyCompletedFuture(new ReferenceResolutionException(errorMessage, exception));
+            return typeService
+                .fetchCachedTypeId(typeKey)
+                .thenCompose(resolvedTypeIdOptional -> resolvedTypeIdOptional
+                    .map(resolvedTypeId ->
+                        completedFuture(
+                            customSetter.apply(draftBuilder, ofTypeIdAndJson(resolvedTypeId, custom.getFields()))))
+                    .orElseGet(() -> {
+                        final String exceptionMessage = format("Type with key '%s' doesn't exist.", typeKey);
+                        return exceptionallyCompletedFuture(new ReferenceResolutionException(exceptionMessage));
+                    }));
         }
+        return completedFuture(draftBuilder);
     }
 
 
