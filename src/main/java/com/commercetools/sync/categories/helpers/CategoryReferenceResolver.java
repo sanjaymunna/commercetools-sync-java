@@ -89,7 +89,6 @@ public final class CategoryReferenceResolver
     @Nonnull
     protected CompletionStage<CategoryDraftBuilder> resolveCustomTypeReference(
         @Nonnull final CategoryDraftBuilder draftBuilder) {
-
         return resolveCustomTypeReference(draftBuilder,
             CategoryDraftBuilder::getCustom,
             CategoryDraftBuilder::custom,
@@ -139,14 +138,13 @@ public final class CategoryReferenceResolver
     private CompletionStage<CategoryDraftBuilder> fetchAndResolveParentReference(
             @Nonnull final CategoryDraftBuilder draftBuilder,
             @Nonnull final String parentCategoryKey) {
-        return categoryService.fetchCachedCategoryId(parentCategoryKey)
+        return categoryService
+            .fetchCachedCategoryId(parentCategoryKey)
             .thenApply(resolvedParentIdOptional -> resolvedParentIdOptional
                 .map(resolvedParentId ->
                     draftBuilder.parent(Category.referenceOfId(resolvedParentId).toResourceIdentifier()))
-                .orElseGet(() -> {
-                    // TODO: Missing reference! Might come later in the batch!
-                    return draftBuilder;
-                }));
+                // If it doesn't exist, it means it might be in a later batch - This is handled in CategorySync class.
+                .orElse(draftBuilder));
     }
 
     @Nonnull
