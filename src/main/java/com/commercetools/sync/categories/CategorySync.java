@@ -35,6 +35,7 @@ import static com.commercetools.sync.categories.utils.CategorySyncUtils.buildAct
 import static com.commercetools.sync.commons.utils.ResourceIdentifierUtils.toResourceIdentifierIfNotNull;
 import static com.commercetools.sync.commons.utils.SyncUtils.batchElements;
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 public class CategorySync extends BaseSync<CategoryDraft, CategorySyncStatistics, CategorySyncOptions> {
@@ -302,7 +303,8 @@ public class CategorySync extends BaseSync<CategoryDraft, CategorySyncStatistics
         return getParentCategoryKey(categoryDraft)
             .map(parentCategoryKey -> {
                 if (isMissingCategory(parentCategoryKey, keyToIdCache)) {
-                    statistics.putMissingParentCategoryChildKey(parentCategoryKey, categoryDraft.getKey());
+                    statistics.putMissingParentCategoryChildKey(parentCategoryKey,
+                        requireNonNull(categoryDraft.getKey()));
                     return CategoryDraftBuilder.of(categoryDraft)
                                                .parent((ResourceIdentifier<Category>) null)
                                                .build();
