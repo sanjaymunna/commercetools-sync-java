@@ -305,19 +305,22 @@ public final class ProductReferenceResolver extends BaseReferenceResolver<Produc
             return completedFuture(draftBuilder);
         }
 
+        String resourceKey;
         try {
-            final String resourceKey = getKeyFromResourceIdentifier(reference);
-            return keyToIdMapper.apply(resourceKey)
-                .thenApply(optId -> optId
-                    .map(idToReferenceMapper)
-                    .map(referenceToSet -> referenceSetter.apply(draftBuilder, referenceToSet))
-                    .orElse(draftBuilder));
+            resourceKey = getKeyFromReference(reference);
         } catch (ReferenceResolutionException referenceResolutionException) {
             return exceptionallyCompletedFuture(
                 new ReferenceResolutionException(
                     format(FAILED_TO_RESOLVE_REFERENCE, reference.getTypeId(), draftBuilder.getKey(),
                         referenceResolutionException.getMessage())));
         }
+
+        return keyToIdMapper.apply(resourceKey)
+                            .thenApply(optId -> optId
+                                .map(idToReferenceMapper)
+                                .map(referenceToSet -> referenceSetter.apply(draftBuilder, referenceToSet))
+                                //throw
+                                .orElse(draftBuilder));
     }
 
 }

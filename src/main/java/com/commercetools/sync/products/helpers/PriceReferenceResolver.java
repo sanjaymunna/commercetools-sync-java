@@ -154,19 +154,21 @@ public final class PriceReferenceResolver
             return completedFuture(draftBuilder);
         }
 
+        String resourceKey;
         try {
-            final String resourceKey = getKeyFromResourceIdentifier(reference);
-            return keyToIdMapper.apply(resourceKey)
-                                .thenCompose(resourceIdOptional -> resourceIdOptional
-                                    .map(idToReferenceMapper)
-                                    .map(referenceToSet -> referenceSetter.apply(draftBuilder, referenceToSet))
-                                    .orElseGet(() -> nonExistingReferenceDraftMapper.apply(draftBuilder, resourceKey)));
+            resourceKey = getKeyFromReference(reference);
         } catch (ReferenceResolutionException referenceResolutionException) {
             return exceptionallyCompletedFuture(
                 new ReferenceResolutionException(
                     format(FAILED_TO_RESOLVE_REFERENCE, reference.getTypeId(), draftBuilder.getCountry(),
                         draftBuilder.getValue(), referenceResolutionException.getMessage())));
         }
+
+        return keyToIdMapper.apply(resourceKey)
+                            .thenCompose(resourceIdOptional -> resourceIdOptional
+                                .map(idToReferenceMapper)
+                                .map(referenceToSet -> referenceSetter.apply(draftBuilder, referenceToSet))
+                                .orElseGet(() -> nonExistingReferenceDraftMapper.apply(draftBuilder, resourceKey)));
     }
 
     /**

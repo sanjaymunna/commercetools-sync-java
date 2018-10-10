@@ -3,6 +3,7 @@ package com.commercetools.sync.commons.helpers;
 
 import com.commercetools.sync.commons.BaseSyncOptions;
 import com.commercetools.sync.commons.exceptions.ReferenceResolutionException;
+import io.sphere.sdk.models.Reference;
 import io.sphere.sdk.models.ResourceIdentifier;
 
 import javax.annotation.Nonnull;
@@ -58,6 +59,17 @@ public abstract class BaseReferenceResolver<T, S extends BaseSyncOptions> {
         final String key = resourceIdentifier.getKey();
         if (isBlank(key)) {
             throw new ReferenceResolutionException(BLANK_KEY_VALUE_ON_RESOURCE_IDENTIFIER);
+        }
+        return key;
+    }
+
+    @Nonnull
+    protected static <T> String getKeyFromReference(@Nonnull final Reference<T> reference)
+        throws ReferenceResolutionException {
+
+        final String key = reference.getId();
+        if (isBlank(key)) {
+            throw new ReferenceResolutionException(BLANK_ID_VALUE_ON_RESOURCE_IDENTIFIER);
         }
         return key;
     }
