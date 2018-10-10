@@ -33,6 +33,7 @@ public abstract class CustomReferenceResolver
         <D extends CustomDraft, B extends Builder<? extends D>, S extends BaseSyncOptions>
     extends BaseReferenceResolver<D, S> {
 
+    public static final String TYPE_DOES_NOT_EXIST = "Type with key '%s' doesn't exist.";
     private TypeService typeService;
 
     protected CustomReferenceResolver(@Nonnull final S options, @Nonnull final TypeService typeService) {
@@ -98,7 +99,7 @@ public abstract class CustomReferenceResolver
                         completedFuture(
                             customSetter.apply(draftBuilder, ofTypeIdAndJson(resolvedTypeId, custom.getFields()))))
                     .orElseGet(() -> {
-                        final String exceptionMessage = format("Type with key '%s' doesn't exist.", typeKey);
+                        final String exceptionMessage = format(TYPE_DOES_NOT_EXIST, typeKey);
                         return exceptionallyCompletedFuture(new ReferenceResolutionException(exceptionMessage));
                     }));
         }
