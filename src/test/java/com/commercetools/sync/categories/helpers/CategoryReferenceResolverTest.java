@@ -17,7 +17,6 @@ import io.sphere.sdk.models.SphereException;
 import io.sphere.sdk.types.CustomFieldsDraft;
 import io.sphere.sdk.types.Type;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -28,8 +27,10 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static com.commercetools.sync.categories.CategorySyncMockUtils.getMockCategoryDraftBuilder;
+import static com.commercetools.sync.categories.helpers.CategoryReferenceResolver.PARENT_CATEGORY_DOES_NOT_EXIST;
 import static com.commercetools.sync.commons.MockUtils.getMockTypeService;
 import static com.commercetools.sync.commons.helpers.BaseReferenceResolver.BLANK_ID_VALUE_ON_RESOURCE_IDENTIFIER;
+import static com.commercetools.sync.commons.helpers.CustomReferenceResolver.TYPE_DOES_NOT_EXIST;
 import static io.sphere.sdk.models.LocalizedString.ofEnglish;
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
@@ -130,21 +131,19 @@ public class CategoryReferenceResolverTest {
         assertThat(resolvedAssetDraft.getCustom().getType().getId()).isEqualTo("typeId");
     }
 
-
-    @Ignore("TODO: SHOULD COMPLETE EXCEPTIONALLY. GITHUB ISSUE#219")
     @Test
     public void resolveParentReference_WithNonExistentParentCategory_ShouldNotResolveParentReference() {
+        // preparation
         final CategoryDraftBuilder categoryDraft = getMockCategoryDraftBuilder(Locale.ENGLISH, "myDraft", "key",
             CACHED_CATEGORY_KEY, "customTypeId", new HashMap<>());
         when(categoryService.fetchCachedCategoryId(CACHED_CATEGORY_KEY))
             .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
 
-        referenceResolver.resolveParentReference(categoryDraft)
-                                 .thenApply(CategoryDraftBuilder::build)
-                                 .thenAccept(resolvedDraft -> {
-                                     assertThat(resolvedDraft.getParent()).isNotNull();
-                                     assertThat(resolvedDraft.getParent().getId()).isEqualTo(CACHED_CATEGORY_ID);
-                                 }).toCompletableFuture().join();
+        // assertion and test
+        assertThat(referenceResolver.resolveParentReference(categoryDraft))
+            .hasFailedWithThrowableThat()
+            .isExactlyInstanceOf(ReferenceResolutionException.class)
+            .hasMessage(format(PARENT_CATEGORY_DOES_NOT_EXIST, CACHED_CATEGORY_KEY));
     }
 
     @Test
@@ -158,7 +157,6 @@ public class CategoryReferenceResolverTest {
 
         assertThat(referenceResolver.resolveCustomTypeReference(categoryDraft)
             .toCompletableFuture())
-            .hasFailed()
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(SphereException.class)
             .hasMessageContaining("CTP error on fetch");
@@ -166,18 +164,18 @@ public class CategoryReferenceResolverTest {
 
     @Test
     public void resolveCustomTypeReference_WithNonExistentCustomType_ShouldNotResolveCustomTypeReference() {
+        // preparation
+        final String customTypeKey = "foo";
         final CategoryDraftBuilder categoryDraft = getMockCategoryDraftBuilder(Locale.ENGLISH, "myDraft", "key",
-            CACHED_CATEGORY_KEY, "customTypeId", new HashMap<>());
+            CACHED_CATEGORY_KEY, customTypeKey, new HashMap<>());
         when(typeService.fetchCachedTypeId(anyString()))
             .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
 
-        referenceResolver.resolveCustomTypeReference(categoryDraft)
-                                 .thenApply(CategoryDraftBuilder::build)
-                                 .thenAccept(resolvedDraft -> {
-                                     assertThat(resolvedDraft.getCustom()).isNotNull();
-                                     assertThat(resolvedDraft.getCustom().getType()).isNotNull();
-                                     assertThat(resolvedDraft.getCustom().getType().getId()).isEqualTo("customTypeId");
-                                 }).toCompletableFuture().join();
+        // assertion and test
+        assertThat(referenceResolver.resolveCustomTypeReference(categoryDraft))
+            .hasFailedWithThrowableThat()
+            .isExactlyInstanceOf(ReferenceResolutionException.class)
+            .hasMessage(format(TYPE_DOES_NOT_EXIST, customTypeKey));
     }
 
     @Test

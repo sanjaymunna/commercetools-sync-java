@@ -22,13 +22,13 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import static com.commercetools.sync.commons.MockUtils.getMockTypeService;
 import static com.commercetools.sync.commons.helpers.BaseReferenceResolver.BLANK_ID_VALUE_ON_RESOURCE_IDENTIFIER;
+import static com.commercetools.sync.commons.helpers.CustomReferenceResolver.TYPE_DOES_NOT_EXIST;
 import static com.commercetools.sync.inventories.InventorySyncMockUtils.getMockChannelService;
 import static com.commercetools.sync.inventories.InventorySyncMockUtils.getMockSupplyChannel;
 import static com.commercetools.sync.products.ProductSyncMockUtils.getMockCustomerGroup;
@@ -64,6 +64,7 @@ public class PriceReferenceResolverTest {
 
     @Test
     public void resolveCustomTypeReference_WithNonExistentCustomType_ShouldNotResolveCustomTypeReference() {
+        // preparation
         final String customTypeKey = "customTypeKey";
         final CustomFieldsDraft customFieldsDraft = CustomFieldsDraft.ofTypeIdAndJson(customTypeKey, new HashMap<>());
         final PriceDraftBuilder priceBuilder = PriceDraftBuilder
@@ -77,12 +78,11 @@ public class PriceReferenceResolverTest {
         final PriceReferenceResolver priceReferenceResolver =
             new PriceReferenceResolver(syncOptions, typeService, channelService, customerGroupService);
 
-        assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder).toCompletableFuture())
-            .hasNotFailed()
-            .isCompletedWithValueMatching(resolvedDraft ->
-                Objects.nonNull(resolvedDraft.getCustom())
-                    && Objects.nonNull(resolvedDraft.getCustom().getType())
-                    && Objects.equals(resolvedDraft.getCustom().getType().getId(), customTypeKey));
+        // assertion and test
+        assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder))
+            .hasFailedWithThrowableThat()
+            .isExactlyInstanceOf(ReferenceResolutionException.class)
+            .hasMessage(format(TYPE_DOES_NOT_EXIST, customTypeKey));
     }
 
     @Test
@@ -100,7 +100,6 @@ public class PriceReferenceResolverTest {
             new PriceReferenceResolver(syncOptions, typeService, channelService, customerGroupService);
 
         assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder).toCompletableFuture())
-            .hasFailed()
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve custom type reference on PriceDraft"
@@ -119,7 +118,6 @@ public class PriceReferenceResolverTest {
             new PriceReferenceResolver(syncOptions, typeService, channelService, customerGroupService);
 
         assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder).toCompletableFuture())
-            .hasFailed()
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve custom type reference on PriceDraft"
@@ -143,7 +141,6 @@ public class PriceReferenceResolverTest {
             new PriceReferenceResolver(syncOptions, typeService, channelService, customerGroupService);
 
         assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder).toCompletableFuture())
-            .hasFailed()
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(SphereException.class)
             .hasMessageContaining("CTP error on fetch");

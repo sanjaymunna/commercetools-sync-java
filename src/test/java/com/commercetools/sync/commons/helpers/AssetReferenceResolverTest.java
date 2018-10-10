@@ -15,12 +15,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static com.commercetools.sync.commons.MockUtils.getMockTypeService;
 import static com.commercetools.sync.commons.helpers.BaseReferenceResolver.BLANK_ID_VALUE_ON_RESOURCE_IDENTIFIER;
+import static com.commercetools.sync.commons.helpers.CustomReferenceResolver.TYPE_DOES_NOT_EXIST;
 import static io.sphere.sdk.models.LocalizedString.ofEnglish;
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
@@ -44,6 +44,7 @@ public class AssetReferenceResolverTest {
 
     @Test
     public void resolveCustomTypeReference_WithNonExistentCustomType_ShouldNotResolveCustomTypeReference() {
+        // preparation
         final String customTypeKey = "customTypeKey";
         final CustomFieldsDraft customFieldsDraft = CustomFieldsDraft.ofTypeIdAndJson(customTypeKey, new HashMap<>());
         final AssetDraftBuilder assetDraftBuilder = AssetDraftBuilder.of(emptyList(), ofEnglish("assetName"))
@@ -55,12 +56,11 @@ public class AssetReferenceResolverTest {
 
         final AssetReferenceResolver assetReferenceResolver = new AssetReferenceResolver(syncOptions, typeService);
 
-        assertThat(assetReferenceResolver.resolveCustomTypeReference(assetDraftBuilder).toCompletableFuture())
-            .hasNotFailed()
-            .isCompletedWithValueMatching(resolvedDraft ->
-                Objects.nonNull(resolvedDraft.getCustom())
-                    && Objects.nonNull(resolvedDraft.getCustom().getType())
-                    && Objects.equals(resolvedDraft.getCustom().getType().getId(), customTypeKey));
+        // assertion and test
+        assertThat(assetReferenceResolver.resolveCustomTypeReference(assetDraftBuilder))
+            .hasFailedWithThrowableThat()
+            .isExactlyInstanceOf(ReferenceResolutionException.class)
+            .hasMessage(format(TYPE_DOES_NOT_EXIST, customTypeKey));
     }
 
     @Test
@@ -76,7 +76,6 @@ public class AssetReferenceResolverTest {
         final AssetReferenceResolver assetReferenceResolver = new AssetReferenceResolver(syncOptions, typeService);
 
         assertThat(assetReferenceResolver.resolveCustomTypeReference(assetDraftBuilder).toCompletableFuture())
-            .hasFailed()
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve custom type reference on AssetDraft with key:'assetKey'. Reason: %s",
@@ -93,7 +92,6 @@ public class AssetReferenceResolverTest {
         final AssetReferenceResolver assetReferenceResolver = new AssetReferenceResolver(syncOptions, typeService);
 
         assertThat(assetReferenceResolver.resolveCustomTypeReference(assetDraftBuilder).toCompletableFuture())
-            .hasFailed()
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve custom type reference on AssetDraft with key:'assetKey'. Reason: %s",
@@ -115,7 +113,6 @@ public class AssetReferenceResolverTest {
         final AssetReferenceResolver assetReferenceResolver = new AssetReferenceResolver(syncOptions, typeService);
 
         assertThat(assetReferenceResolver.resolveCustomTypeReference(assetDraftBuilder).toCompletableFuture())
-            .hasFailed()
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(SphereException.class)
             .hasMessageContaining("CTP error on fetch");

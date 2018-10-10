@@ -34,6 +34,8 @@ public final class CategoryReferenceResolver
     private static final String FAILED_TO_RESOLVE_CUSTOM_TYPE = "Failed to resolve custom type reference on "
         + "CategoryDraft with key:'%s'.";
 
+    public static final String PARENT_CATEGORY_DOES_NOT_EXIST = "Parent Category with key '%s' doesn't exist.";
+
     /**
      * Takes a {@link CategorySyncOptions} instance, a {@link CategoryService} and {@link TypeService} to instantiate a
      * {@link CategoryReferenceResolver} instance that could be used to resolve the category drafts in the
@@ -140,11 +142,15 @@ public final class CategoryReferenceResolver
             @Nonnull final String parentCategoryKey) {
         return categoryService
             .fetchCachedCategoryId(parentCategoryKey)
-            .thenApply(resolvedParentIdOptional -> resolvedParentIdOptional
+            .thenCompose(resolvedParentIdOptional -> resolvedParentIdOptional
                 .map(resolvedParentId ->
-                    draftBuilder.parent(Category.referenceOfId(resolvedParentId).toResourceIdentifier()))
-                // If it doesn't exist, it means it might be in a later batch - This is handled in CategorySync class.
-                .orElse(draftBuilder));
+                    completedFuture(draftBuilder.parent(Category.referenceOfId(resolvedParentId).toResourceIdentifier())))
+                // If it doesn't exist, it means it might be in a later batch. Unset from draft. Check implementation
+                // in CategorySync class. If it doesn't exist at this point then sth is wrong.
+                .orElseGet(() -> {
+                    final String exceptionMessage = format(PARENT_CATEGORY_DOES_NOT_EXIST, parentCategoryKey);
+                    return exceptionallyCompletedFuture(new ReferenceResolutionException(exceptionMessage));
+                }));
     }
 
     @Nonnull
