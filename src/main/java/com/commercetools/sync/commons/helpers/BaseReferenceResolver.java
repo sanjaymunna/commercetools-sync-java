@@ -21,6 +21,8 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 public abstract class BaseReferenceResolver<T, S extends BaseSyncOptions> {
     public static final String BLANK_KEY_VALUE_ON_RESOURCE_IDENTIFIER = "The value of the 'key' field of the Resource"
         + " Identifier/Reference is blank (null/empty).";
+    public static final String BLANK_ID_VALUE_ON_REFERENCE = "The value of the 'id' field of the Reference"
+        + " is blank (null/empty). Expecting the key of the referenced resource.";
 
     protected S options;
 
@@ -69,7 +71,7 @@ public abstract class BaseReferenceResolver<T, S extends BaseSyncOptions> {
 
         final String key = reference.getId();
         if (isBlank(key)) {
-            throw new ReferenceResolutionException(BLANK_ID_VALUE_ON_RESOURCE_IDENTIFIER);
+            throw new ReferenceResolutionException(BLANK_ID_VALUE_ON_REFERENCE);
         }
         return key;
     }
