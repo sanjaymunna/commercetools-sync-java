@@ -151,6 +151,33 @@ public final class CategoryReferenceResolver
     }
 
     /**
+     * TODO
+     * Given a category parent resource identifier, if it is not null the method validates the id field value. If it is
+     * not valid, a {@link ReferenceResolutionException} will be thrown. The validity checks are:
+     * <ul>
+     * <li>Checks if the id value is not null or not empty.</li>
+     * </ul>
+     * If the above checks pass, the id value is returned in an optional. Otherwise a
+     * {@link ReferenceResolutionException} is thrown.
+     *
+     * <p>If the passed resource identifier is {@code null}, then an empty optional is returned.
+     * @param draft TODO AND FIXME
+     * @return an optional containing the id or an empty optional if there is no parent reference.
+     * @throws ReferenceResolutionException thrown if the key is invalid.
+     */
+    @Nonnull
+    public static Optional<String> getParentCategoryKey(@Nonnull final CategoryDraft draft)
+        throws ReferenceResolutionException {
+
+        if (draft.getParent() != null) {
+            final String referenceResolutionErrorMessage = format(FAILED_TO_RESOLVE_PARENT, draft.getKey());
+            final String parentCategoryKey = getParentCategoryKey(draft.getParent(), referenceResolutionErrorMessage);
+            return of(parentCategoryKey);
+        }
+        return Optional.empty();
+    }
+
+    /**
      * Given a {@link CategoryDraftBuilder} and a {@code parentCategoryKey} this method fetches the actual id of the
      * category corresponding to this key, ideally from a cache. Then it sets this id on the parent reference
      * id. If the id is not found in cache nor the CTP project, the resultant draft builder
@@ -180,17 +207,5 @@ public final class CategoryReferenceResolver
                             parentCategoryKey));
                     return exceptionallyCompletedFuture(new ReferenceResolutionException(errorMessage));
                 }));
-    }
-    
-    @Nonnull
-    public static Optional<String> getParentCategoryKey(@Nonnull final CategoryDraft draft)
-        throws ReferenceResolutionException {
-
-        if (draft.getParent() != null) {
-            final String referenceResolutionErrorMessage = format(FAILED_TO_RESOLVE_PARENT, draft.getKey());
-            final String parentCategoryKey = getParentCategoryKey(draft.getParent(), referenceResolutionErrorMessage);
-            return of(parentCategoryKey);
-        }
-        return Optional.empty();
     }
 }
