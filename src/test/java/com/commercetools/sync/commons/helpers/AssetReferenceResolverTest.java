@@ -92,7 +92,8 @@ public class AssetReferenceResolverTest {
         // Test and assertion
         final String expectedExceptionMessage =
             format(AssetReferenceResolver.FAILED_TO_RESOLVE_CUSTOM_TYPE, assetDraftBuilder.getKey());
-        final String expectedMessageWithCause = format("%s Reason: %s", expectedExceptionMessage, TYPE_DOES_NOT_EXIST);
+        final String expectedMessageWithCause = format("%s Reason: %s", expectedExceptionMessage,
+            format(TYPE_DOES_NOT_EXIST, "customTypeKey"));
         assertThat(assetReferenceResolver.resolveCustomTypeReference(assetDraftBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
