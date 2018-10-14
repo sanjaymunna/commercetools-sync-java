@@ -112,12 +112,10 @@ public class VariantReferenceResolverTest { ;
 
     @Test
     public void resolveAssetsReferences_WithAssetReferences_ShouldResolveAssets() {
-        final CustomFieldsDraft customFieldsDraft = CustomFieldsDraft
-            .ofTypeIdAndJson("customTypeId", new HashMap<>());
-
-        final AssetDraft assetDraft = AssetDraftBuilder.of(emptyList(), ofEnglish("assetName"))
-                                                       .custom(customFieldsDraft)
-                                                       .build();
+        final AssetDraft assetDraft =
+            AssetDraftBuilder.of(emptyList(), ofEnglish("assetName"))
+                             .custom(CustomFieldsDraft.ofTypeKeyAndJson("customTypeKey", new HashMap<>()))
+                             .build();
 
         final ProductVariantDraftBuilder productVariantDraftBuilder =
             ProductVariantDraftBuilder.of().assets(singletonList(assetDraft));
@@ -160,25 +158,28 @@ public class VariantReferenceResolverTest { ;
 
     @Test
     public void resolvePricesReferences_WithPriceReferences_ShouldResolvePrices() {
-        final CustomFieldsDraft customFieldsDraft = CustomFieldsDraft
-            .ofTypeIdAndJson("customTypeId", new HashMap<>());
-
-        final PriceDraft priceDraft = PriceDraftBuilder.of(MoneyImpl.of(BigDecimal.TEN, DefaultCurrencyUnits.EUR))
-                                                       .custom(customFieldsDraft).build();
+        // Preparation
+        final PriceDraft priceDraft =
+            PriceDraftBuilder.of(MoneyImpl.of(BigDecimal.TEN, DefaultCurrencyUnits.EUR))
+                             .custom(CustomFieldsDraft.ofTypeKeyAndJson("customTypeKey", new HashMap<>()))
+                             .build();
 
         final ProductVariantDraftBuilder productVariantDraftBuilder =
             ProductVariantDraftBuilder.of().prices(priceDraft);
 
-        final ProductVariantDraftBuilder resolvedBuilder = referenceResolver
-            .resolvePricesReferences(productVariantDraftBuilder)
-            .toCompletableFuture().join();
+        // Test
+        final ProductVariantDraftBuilder resolvedBuilder =
+            referenceResolver.resolvePricesReferences(productVariantDraftBuilder)
+                             .toCompletableFuture().join();
 
+        // Assertion
         final List<PriceDraft> resolvedBuilderPrices = resolvedBuilder.getPrices();
-        assertThat(resolvedBuilderPrices).isNotEmpty();
-        final PriceDraft resolvedPriceDraft = resolvedBuilderPrices.get(0);
-        assertThat(resolvedPriceDraft).isNotNull();
-        assertThat(resolvedPriceDraft.getCustom()).isNotNull();
-        assertThat(resolvedPriceDraft.getCustom().getType().getId()).isEqualTo("typeId");
+        assertThat(resolvedBuilderPrices).hasSize(1);
+        assertThat(resolvedBuilderPrices).allSatisfy(resolvedPriceDraft -> {
+            assertThat(resolvedPriceDraft).isNotNull();
+            assertThat(resolvedPriceDraft.getCustom()).isNotNull();
+            assertThat(resolvedPriceDraft.getCustom().getType().getId()).isEqualTo("typeId");
+        });
     }
 
     @Test
