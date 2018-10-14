@@ -75,8 +75,7 @@ public class TaxCategoryReferenceResolverTest {
         final ProductDraftBuilder productBuilder = getBuilderWithRandomProductTypeUuid()
             .key("dummyKey");
 
-        assertThat(referenceResolver.resolveTaxCategoryReference(productBuilder).toCompletableFuture())
-            .hasNotFailed()
+        assertThat(referenceResolver.resolveTaxCategoryReference(productBuilder))
             .isCompletedWithValueMatching(resolvedDraft -> Objects.isNull(resolvedDraft.getTaxCategory()));
     }
 
@@ -89,7 +88,7 @@ public class TaxCategoryReferenceResolverTest {
         when(taxCategoryService.fetchCachedTaxCategoryId(anyString()))
             .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
 
-        assertThat(referenceResolver.resolveTaxCategoryReference(productBuilder).toCompletableFuture())
+        assertThat(referenceResolver.resolveTaxCategoryReference(productBuilder))
             .hasNotFailed()
             .isCompletedWithValueMatching(resolvedDraft ->
                 Objects.nonNull(resolvedDraft.getTaxCategory())
