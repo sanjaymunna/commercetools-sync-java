@@ -175,7 +175,8 @@ public class CategoryReferenceResolverTest {
 
         // Test and assertion
         final String expectedExceptionMessage = format(FAILED_TO_RESOLVE_PARENT, categoryDraft.getKey());
-        final String expectedMessageWithCause = format("%s Reason: %s", expectedExceptionMessage, PARENT_CATEGORY_DOES_NOT_EXIST);
+        final String expectedMessageWithCause = format("%s Reason: %s", expectedExceptionMessage,
+            format(PARENT_CATEGORY_DOES_NOT_EXIST, CACHED_CATEGORY_KEY));
         assertThat(referenceResolver.resolveParentReference(categoryDraft))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
@@ -286,7 +287,8 @@ public class CategoryReferenceResolverTest {
 
         // Test and assertion
         final String expectedExceptionMessage = format(FAILED_TO_RESOLVE_CUSTOM_TYPE, categoryDraft.getKey());
-        final String expectedMessageWithCause = format("%s Reason: %s", expectedExceptionMessage, TYPE_DOES_NOT_EXIST);
+        final String expectedMessageWithCause = format("%s Reason: %s", expectedExceptionMessage,
+            format(TYPE_DOES_NOT_EXIST, "customTypeKey"));
         assertThat(referenceResolver.resolveCustomTypeReference(categoryDraft))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)

@@ -31,7 +31,7 @@ public final class CategoryReferenceResolver
     private CategoryService categoryService;
     static final String FAILED_TO_RESOLVE_PARENT = "Failed to resolve parent reference on "
         + "CategoryDraft with key:'%s'.";
-    static final String PARENT_CATEGORY_DOES_NOT_EXIST = "Parent category doesn't exist.";
+    static final String PARENT_CATEGORY_DOES_NOT_EXIST = "Parent category with key '%s' doesn't exist.";
     static final String FAILED_TO_RESOLVE_CUSTOM_TYPE = "Failed to resolve custom type reference on "
         + "CategoryDraft with key:'%s'.";
 
@@ -175,7 +175,8 @@ public final class CategoryReferenceResolver
                     // This case cannot happen, as CategorySync removes the reference if it wasn't there.
                     final String mainErrorMessage = format(FAILED_TO_RESOLVE_PARENT, draftBuilder.getKey());
                     final String errorMessage =
-                        format("%s Reason: %s", mainErrorMessage, PARENT_CATEGORY_DOES_NOT_EXIST);
+                        format("%s Reason: %s", mainErrorMessage, format(PARENT_CATEGORY_DOES_NOT_EXIST,
+                            parentCategoryKey));
                     return exceptionallyCompletedFuture(new ReferenceResolutionException(errorMessage));
                 }));
     }
