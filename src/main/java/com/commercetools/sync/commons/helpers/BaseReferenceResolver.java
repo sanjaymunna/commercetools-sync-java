@@ -20,7 +20,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
  */
 public abstract class BaseReferenceResolver<T, S extends BaseSyncOptions> {
     public static final String BLANK_KEY_VALUE_ON_RESOURCE_IDENTIFIER = "The value of the 'key' field of the Resource"
-        + " Identifier/Reference is blank (null/empty).";
+        + " Identifier is blank (null/empty). Expecting the key of the referenced resource.";
     public static final String BLANK_ID_VALUE_ON_REFERENCE = "The value of the 'id' field of the Reference"
         + " is blank (null/empty). Expecting the key of the referenced resource.";
 
