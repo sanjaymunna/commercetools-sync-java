@@ -116,7 +116,8 @@ public class PriceReferenceResolverTest {
         // Test and assertion
         final String expectedExceptionMessage = format(PriceReferenceResolver.FAILED_TO_RESOLVE_CUSTOM_TYPE,
             priceBuilder.getCountry(), priceBuilder.getValue());
-        final String expectedMessageWithCause = format("%s Reason: %s", expectedExceptionMessage, TYPE_DOES_NOT_EXIST);
+        final String expectedMessageWithCause = format("%s Reason: %s", expectedExceptionMessage,
+            format(TYPE_DOES_NOT_EXIST, customTypeKey));
         assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
