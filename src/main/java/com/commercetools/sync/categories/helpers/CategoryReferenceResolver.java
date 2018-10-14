@@ -132,7 +132,7 @@ public final class CategoryReferenceResolver
      *
      * @param parentCategoryResourceIdentifier the category parent resource identifier. If null - an empty optional is
      *                                         returned.
-     * @param referenceResolutionErrorMessage                      the category key used in the error message if the key was not valid.
+     * @param referenceResolutionErrorMessage  the error message if the key was not valid.
      * @return an optional containing the id or an empty optional if there is no parent reference.
      * @throws ReferenceResolutionException thrown if the key is invalid.
      */
@@ -170,7 +170,8 @@ public final class CategoryReferenceResolver
             .fetchCachedCategoryId(parentCategoryKey)
             .thenCompose(resolvedParentIdOptional -> resolvedParentIdOptional
                 .map(resolvedParentId ->
-                    completedFuture(draftBuilder.parent(Category.referenceOfId(resolvedParentId).toResourceIdentifier())))
+                    completedFuture(
+                        draftBuilder.parent(Category.referenceOfId(resolvedParentId).toResourceIdentifier())))
                 .orElseGet(() -> {
                     // This case cannot happen, as CategorySync removes the reference if it wasn't there.
                     final String mainErrorMessage = format(FAILED_TO_RESOLVE_PARENT, draftBuilder.getKey());
@@ -180,8 +181,7 @@ public final class CategoryReferenceResolver
                     return exceptionallyCompletedFuture(new ReferenceResolutionException(errorMessage));
                 }));
     }
-
-
+    
     @Nonnull
     public static Optional<String> getParentCategoryKey(@Nonnull final CategoryDraft draft)
         throws ReferenceResolutionException {
