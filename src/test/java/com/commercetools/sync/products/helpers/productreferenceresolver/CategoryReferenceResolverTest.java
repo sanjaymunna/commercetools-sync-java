@@ -271,6 +271,7 @@ public class CategoryReferenceResolverTest {
 
     @Test
     public void resolveCategoryReferences_WithExceptionCategoryFetch_ShouldNotResolveReference() {
+        // preparation
         final ProductSyncOptions productSyncOptions = ProductSyncOptionsBuilder.of(mock(SphereClient.class))
                                                                                .build();
         final Category category = getMockCategory("categoryKey", "categoryKey");
