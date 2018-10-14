@@ -6,35 +6,43 @@ import com.commercetools.sync.products.ProductSyncOptionsBuilder;
 import com.commercetools.sync.services.ChannelService;
 import com.commercetools.sync.services.CustomerGroupService;
 import com.commercetools.sync.services.TypeService;
+import com.commercetools.sync.services.impl.TypeServiceImpl;
 import com.neovisionaries.i18n.CountryCode;
 import io.sphere.sdk.channels.Channel;
 import io.sphere.sdk.client.SphereClient;
 import io.sphere.sdk.models.DefaultCurrencyUnits;
-import io.sphere.sdk.models.ResourceIdentifier;
+import io.sphere.sdk.models.Reference;
 import io.sphere.sdk.models.SphereException;
 import io.sphere.sdk.products.PriceDraft;
 import io.sphere.sdk.products.PriceDraftBuilder;
+import io.sphere.sdk.queries.PagedQueryResult;
 import io.sphere.sdk.types.CustomFieldsDraft;
 import io.sphere.sdk.types.Type;
+import io.sphere.sdk.types.queries.TypeQuery;
 import io.sphere.sdk.utils.MoneyImpl;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 
 import static com.commercetools.sync.commons.MockUtils.getMockTypeService;
+import static com.commercetools.sync.commons.helpers.BaseReferenceResolver.BLANK_ID_VALUE_ON_REFERENCE;
 import static com.commercetools.sync.commons.helpers.BaseReferenceResolver.BLANK_KEY_VALUE_ON_RESOURCE_IDENTIFIER;
+import static com.commercetools.sync.commons.helpers.CustomReferenceResolver.TYPE_DOES_NOT_EXIST;
 import static com.commercetools.sync.inventories.InventorySyncMockUtils.getMockChannelService;
 import static com.commercetools.sync.inventories.InventorySyncMockUtils.getMockSupplyChannel;
 import static com.commercetools.sync.products.ProductSyncMockUtils.getMockCustomerGroup;
 import static com.commercetools.sync.products.ProductSyncMockUtils.getMockCustomerGroupService;
+import static com.commercetools.sync.products.helpers.PriceReferenceResolver.CHANNEL_DOES_NOT_EXIST;
+import static com.commercetools.sync.products.helpers.PriceReferenceResolver.FAILED_TO_RESOLVE_REFERENCE;
 import static java.lang.String.format;
+import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -63,9 +71,37 @@ public class PriceReferenceResolverTest {
     }
 
     @Test
-    public void resolveCustomTypeReference_WithNonExistentCustomType_ShouldNotResolveCustomTypeReference() {
+    public void resolveCustomTypeReference_WithExceptionOnCustomTypeFetch_ShouldNotResolveReferences() {
+        // Preparation
+        final SphereClient ctpClient = mock(SphereClient.class);
+        final ProductSyncOptions productSyncOptions = ProductSyncOptionsBuilder.of(ctpClient).build();
+
+        final TypeService typeService = new TypeServiceImpl(productSyncOptions);
+
+        final CompletableFuture<PagedQueryResult<Type>> futureThrowingSphereException = new CompletableFuture<>();
+        futureThrowingSphereException.completeExceptionally(new SphereException("CTP error on fetch"));
+        when(ctpClient.execute(any(TypeQuery.class))).thenReturn(futureThrowingSphereException);
+
         final String customTypeKey = "customTypeKey";
-        final CustomFieldsDraft customFieldsDraft = CustomFieldsDraft.ofTypeIdAndJson(customTypeKey, new HashMap<>());
+        final PriceDraftBuilder priceBuilder = PriceDraftBuilder
+            .of(MoneyImpl.of(BigDecimal.TEN, DefaultCurrencyUnits.EUR))
+            .country(CountryCode.DE)
+            .custom(CustomFieldsDraft.ofTypeKeyAndJson(customTypeKey, new HashMap<>()));
+
+        final PriceReferenceResolver priceReferenceResolver =
+            new PriceReferenceResolver(productSyncOptions, typeService, channelService, customerGroupService);
+
+        // Test and assertion
+        assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder))
+            .hasFailedWithThrowableThat()
+            .isExactlyInstanceOf(SphereException.class)
+            .hasMessageContaining("CTP error on fetch");
+    }
+
+    @Test
+    public void resolveCustomTypeReference_WithNonExistentCustomType_ShouldCompleteExceptionally() {
+        final String customTypeKey = "customTypeKey";
+        final CustomFieldsDraft customFieldsDraft = CustomFieldsDraft.ofTypeKeyAndJson(customTypeKey, new HashMap<>());
         final PriceDraftBuilder priceBuilder = PriceDraftBuilder
             .of(MoneyImpl.of(BigDecimal.TEN, DefaultCurrencyUnits.EUR))
             .country(CountryCode.DE)
@@ -77,24 +113,22 @@ public class PriceReferenceResolverTest {
         final PriceReferenceResolver priceReferenceResolver =
             new PriceReferenceResolver(syncOptions, typeService, channelService, customerGroupService);
 
-        assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder).toCompletableFuture())
-            .hasNotFailed()
-            .isCompletedWithValueMatching(resolvedDraft ->
-                Objects.nonNull(resolvedDraft.getCustom())
-                    && Objects.nonNull(resolvedDraft.getCustom().getType())
-                    && Objects.equals(resolvedDraft.getCustom().getType().getId(), customTypeKey));
+        // Test and assertion
+        final String expectedExceptionMessage = format(PriceReferenceResolver.FAILED_TO_RESOLVE_CUSTOM_TYPE,
+            priceBuilder.getCountry(), priceBuilder.getValue());
+        final String expectedMessageWithCause = format("%s Reason: %s", expectedExceptionMessage, TYPE_DOES_NOT_EXIST);
+        assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder))
+            .hasFailedWithThrowableThat()
+            .isExactlyInstanceOf(ReferenceResolutionException.class)
+            .hasMessage(expectedMessageWithCause);
     }
 
     @Test
-    public void resolveCustomTypeReference_WithNullIdOnCustomTypeReference_ShouldNotResolveCustomTypeReference() {
-        final CustomFieldsDraft customFieldsDraft = mock(CustomFieldsDraft.class);
-        final ResourceIdentifier<Type> typeReference = ResourceIdentifier.ofId(null);
-        when(customFieldsDraft.getType()).thenReturn(typeReference);
-
+    public void resolveCustomTypeReference_WithEmptyKeyOnCustomTypeResId_ShouldCompleteExceptionally() {
         final PriceDraftBuilder priceBuilder = PriceDraftBuilder
             .of(MoneyImpl.of(BigDecimal.TEN, DefaultCurrencyUnits.EUR))
             .country(CountryCode.DE)
-            .custom(customFieldsDraft);
+            .custom(CustomFieldsDraft.ofTypeKeyAndJson("", emptyMap()));
 
         final PriceReferenceResolver priceReferenceResolver =
             new PriceReferenceResolver(syncOptions, typeService, channelService, customerGroupService);
@@ -107,96 +141,72 @@ public class PriceReferenceResolverTest {
     }
 
     @Test
-    public void resolveCustomTypeReference_WithEmptyIdOnCustomTypeReference_ShouldNotResolveCustomTypeReference() {
-        final CustomFieldsDraft customFieldsDraft = CustomFieldsDraft.ofTypeIdAndJson("", new HashMap<>());
+    public void resolveCustomTypeReference_WithNonNullIdOnCustomTypeResId_ShouldResolveCustomTypeReference() {
+        // Preparation
+        final String customTypeId = UUID.randomUUID().toString();
         final PriceDraftBuilder priceBuilder = PriceDraftBuilder
             .of(MoneyImpl.of(BigDecimal.TEN, DefaultCurrencyUnits.EUR))
             .country(CountryCode.DE)
-            .custom(customFieldsDraft);
+            .custom(CustomFieldsDraft.ofTypeIdAndJson(customTypeId, new HashMap<>()));
 
         final PriceReferenceResolver priceReferenceResolver =
             new PriceReferenceResolver(syncOptions, typeService, channelService, customerGroupService);
 
-        assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder))
-            .hasFailedWithThrowableThat()
-            .isExactlyInstanceOf(ReferenceResolutionException.class)
-            .hasMessage(format("Failed to resolve custom type reference on PriceDraft"
-                + " with country:'DE' and value: 'EUR 10'. Reason: %s", BLANK_KEY_VALUE_ON_RESOURCE_IDENTIFIER));
+        // Test
+        final PriceDraftBuilder resolvedDraftBuilder = priceReferenceResolver.resolveCustomTypeReference(priceBuilder)
+                                                                             .toCompletableFuture().join();
+
+        // Assertion
+        assertThat(resolvedDraftBuilder.getCustom()).isNotNull();
+        assertThat(resolvedDraftBuilder.getCustom().getType().getId()).isEqualTo(customTypeId);
     }
 
     @Test
-    public void resolveCustomTypeReference_WithExceptionOnCustomTypeFetch_ShouldNotResolveReferences() {
-        final String customTypeKey = "customTypeKey";
-        final CustomFieldsDraft customFieldsDraft = CustomFieldsDraft.ofTypeIdAndJson(customTypeKey, new HashMap<>());
+    public void resolveCustomTypeReference_WithNonNullKeyOnCustomTypeResId_ShouldResolveCustomTypeReference() {
+        // Preparation
         final PriceDraftBuilder priceBuilder = PriceDraftBuilder
             .of(MoneyImpl.of(BigDecimal.TEN, DefaultCurrencyUnits.EUR))
             .country(CountryCode.DE)
-            .custom(customFieldsDraft);
-
-        final CompletableFuture<Optional<String>> futureThrowingSphereException = new CompletableFuture<>();
-        futureThrowingSphereException.completeExceptionally(new SphereException("CTP error on fetch"));
-        when(typeService.fetchCachedTypeId(anyString())).thenReturn(futureThrowingSphereException);
+            .custom(CustomFieldsDraft.ofTypeKeyAndJson("foo", new HashMap<>()));
 
         final PriceReferenceResolver priceReferenceResolver =
             new PriceReferenceResolver(syncOptions, typeService, channelService, customerGroupService);
 
-        assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder))
-            .hasFailedWithThrowableThat()
-            .isExactlyInstanceOf(SphereException.class)
-            .hasMessageContaining("CTP error on fetch");
+        // Test
+        final PriceDraftBuilder resolvedDraftBuilder = priceReferenceResolver.resolveCustomTypeReference(priceBuilder)
+                                                                             .toCompletableFuture().join();
+        // Assertion
+        assertThat(resolvedDraftBuilder.getCustom()).isNotNull();
+        assertThat(resolvedDraftBuilder.getCustom().getType().getId()).isEqualTo("typeId");
     }
 
     @Test
-    public void resolveChannelReference_WithNonExistingChannelKey_ShouldResolveChannelReference() {
-        final ProductSyncOptions productSyncOptions = ProductSyncOptionsBuilder.of(mock(SphereClient.class))
-                                                                               .build();
-        final PriceDraftBuilder priceBuilder = PriceDraftBuilder
-            .of(MoneyImpl.of(BigDecimal.TEN, DefaultCurrencyUnits.EUR))
-            .country(CountryCode.DE)
-            .channel(Channel.referenceOfId("channelKey"));
-
-        final PriceReferenceResolver priceReferenceResolver =
-            new PriceReferenceResolver(productSyncOptions, typeService, channelService, customerGroupService);
-
-        final PriceDraftBuilder resolvedBuilder = priceReferenceResolver.resolveChannelReference(priceBuilder)
-                                                                        .toCompletableFuture().join();
-        assertThat(resolvedBuilder.getChannel()).isNotNull();
-        assertThat(resolvedBuilder.getChannel().getId()).isEqualTo(CHANNEL_ID);
-    }
-
-    @Test
-    public void
-        resolveSupplyChannelReference_WithNonExistingChannelAndNotEnsureChannel_ShouldNotResolveChannelReference() {
+    public void resolveChannelReference_WithNonExistingChannelAndNotEnsureChannel_ShouldNotResolveChannelReference() {
+        // Preparation
         when(channelService.fetchCachedChannelId(anyString()))
             .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
 
+        final Reference<Channel> channelReference = Channel.referenceOfId("channelKey");
+
         final PriceDraftBuilder priceBuilder = PriceDraftBuilder
             .of(MoneyImpl.of(BigDecimal.TEN, DefaultCurrencyUnits.EUR))
             .country(CountryCode.DE)
-            .channel(Channel.referenceOfId("channelKey"));
+            .channel(channelReference);
 
         final PriceReferenceResolver priceReferenceResolver =
             new PriceReferenceResolver(syncOptions, typeService, channelService, customerGroupService);
 
-
-        priceReferenceResolver.resolveChannelReference(priceBuilder)
-                              .exceptionally(exception -> {
-                                  assertThat(exception).isExactlyInstanceOf(CompletionException.class);
-                                  assertThat(exception.getCause())
-                                      .isExactlyInstanceOf(ReferenceResolutionException.class);
-                                  assertThat(exception.getCause().getCause())
-                                      .isExactlyInstanceOf(ReferenceResolutionException.class);
-                                  assertThat(exception.getCause().getCause().getMessage())
-                                      .isEqualTo("Channel with key 'channelKey' does not exist.");
-                                  return null;
-                              })
-                              .toCompletableFuture()
-                              .join();
+        // Test and assertion
+        assertThat(priceReferenceResolver.resolveChannelReference(priceBuilder))
+            .hasFailedWithThrowableThat()
+            .isExactlyInstanceOf(ReferenceResolutionException.class)
+            .hasMessage(format(FAILED_TO_RESOLVE_REFERENCE, channelReference.getTypeId(), priceBuilder.getCountry(),
+                priceBuilder.getValue(), format(CHANNEL_DOES_NOT_EXIST, channelReference.getId())));
     }
 
     @Test
-    public void
-        resolveSupplyChannelReference_WithNonExistingChannelAndEnsureChannel_ShouldResolveSupplyChannelReference() {
+    public void resolveChannelReference_WithNonExistingChannelAndEnsureChannel_ShouldResolveSupplyChannelReference() {
+        // Preparation
         final ProductSyncOptions optionsWithEnsureChannels = ProductSyncOptionsBuilder.of(mock(SphereClient.class))
                                                                                       .ensurePriceChannels(true)
                                                                                       .build();
@@ -211,14 +221,84 @@ public class PriceReferenceResolverTest {
         final PriceReferenceResolver priceReferenceResolver =
             new PriceReferenceResolver(optionsWithEnsureChannels, typeService, channelService, customerGroupService);
 
-        priceReferenceResolver.resolveChannelReference(priceBuilder)
-                              .thenApply(PriceDraftBuilder::build)
-                              .thenAccept(resolvedDraft -> {
-                                  assertThat(resolvedDraft.getChannel()).isNotNull();
-                                  assertThat(resolvedDraft.getChannel().getId()).isEqualTo(CHANNEL_ID);
-                              })
-                              .toCompletableFuture()
-                              .join();
+        // Test
+        final PriceDraftBuilder resolvedDraftBuilder = priceReferenceResolver.resolveChannelReference(priceBuilder)
+                                                                             .toCompletableFuture().join();
+
+        // Assertion
+        assertThat(resolvedDraftBuilder.getChannel()).isNotNull();
+        assertThat(resolvedDraftBuilder.getChannel().getId()).isEqualTo(CHANNEL_ID);
+    }
+
+    @Test
+    public void resolveChannelReference_WithEmptyChannelKey_ShouldNotResolveChannelReference() {
+        // Preparation
+        when(channelService.fetchCachedChannelId(anyString()))
+            .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
+
+        final Reference<Channel> channelReference = Channel.referenceOfId("");
+
+        final PriceDraftBuilder priceBuilder = PriceDraftBuilder
+            .of(MoneyImpl.of(BigDecimal.TEN, DefaultCurrencyUnits.EUR))
+            .country(CountryCode.DE)
+            .channel(channelReference);
+
+        final PriceReferenceResolver priceReferenceResolver =
+            new PriceReferenceResolver(syncOptions, typeService, channelService, customerGroupService);
+
+        // Test and assertion
+        assertThat(priceReferenceResolver.resolveChannelReference(priceBuilder))
+            .hasFailedWithThrowableThat()
+            .isExactlyInstanceOf(ReferenceResolutionException.class)
+            .hasMessage(format(FAILED_TO_RESOLVE_REFERENCE, channelReference.getTypeId(), priceBuilder.getCountry(),
+                priceBuilder.getValue(), BLANK_ID_VALUE_ON_REFERENCE));
+    }
+
+    @Test
+    public void resolveChannelReference_WithNullChannelKey_ShouldNotResolveChannelReference() {
+        // Preparation
+        when(channelService.fetchCachedChannelId(anyString()))
+            .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
+
+        final Reference<Channel> channelReference = Channel.referenceOfId(null);
+
+        final PriceDraftBuilder priceBuilder = PriceDraftBuilder
+            .of(MoneyImpl.of(BigDecimal.TEN, DefaultCurrencyUnits.EUR))
+            .country(CountryCode.DE)
+            .channel(channelReference);
+
+        final PriceReferenceResolver priceReferenceResolver =
+            new PriceReferenceResolver(syncOptions, typeService, channelService, customerGroupService);
+
+        // Test and assertion
+        assertThat(priceReferenceResolver.resolveChannelReference(priceBuilder))
+            .hasFailedWithThrowableThat()
+            .isExactlyInstanceOf(ReferenceResolutionException.class)
+            .hasMessage(format(FAILED_TO_RESOLVE_REFERENCE, channelReference.getTypeId(), priceBuilder.getCountry(),
+                priceBuilder.getValue(), BLANK_ID_VALUE_ON_REFERENCE));
+    }
+
+    @Test
+    public void resolveChannelReference_WithNonNullChannelKey_ShouldResolveSupplyChannelReference() {
+        // Preparation
+        final ProductSyncOptions optionsWithEnsureChannels = ProductSyncOptionsBuilder.of(mock(SphereClient.class))
+                                                                                      .build();
+
+        final PriceDraftBuilder priceBuilder = PriceDraftBuilder
+            .of(MoneyImpl.of(BigDecimal.TEN, DefaultCurrencyUnits.EUR))
+            .country(CountryCode.DE)
+            .channel(Channel.referenceOfId("channelKey"));
+
+        final PriceReferenceResolver priceReferenceResolver =
+            new PriceReferenceResolver(optionsWithEnsureChannels, typeService, channelService, customerGroupService);
+
+        // Test
+        final PriceDraftBuilder resolvedDraftBuilder = priceReferenceResolver.resolveChannelReference(priceBuilder)
+                                                                             .toCompletableFuture().join();
+
+        // Assertion
+        assertThat(resolvedDraftBuilder.getChannel()).isNotNull();
+        assertThat(resolvedDraftBuilder.getChannel().getId()).isEqualTo(CHANNEL_ID);
     }
 
     @Test

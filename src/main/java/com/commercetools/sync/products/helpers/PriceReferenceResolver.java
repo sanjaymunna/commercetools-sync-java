@@ -30,10 +30,10 @@ public final class PriceReferenceResolver
 
     private ChannelService channelService;
     private CustomerGroupService customerGroupService;
-    private static final String CHANNEL_DOES_NOT_EXIST = "Channel with key '%s' does not exist.";
-    private static final String FAILED_TO_RESOLVE_CUSTOM_TYPE = "Failed to resolve custom type reference on "
+    static final String CHANNEL_DOES_NOT_EXIST = "Channel with key '%s' does not exist.";
+    static final String FAILED_TO_RESOLVE_CUSTOM_TYPE = "Failed to resolve custom type reference on "
         + "PriceDraft with country:'%s' and value: '%s'.";
-    private static final String FAILED_TO_RESOLVE_REFERENCE = "Failed to resolve '%s' reference on PriceDraft with "
+    static final String FAILED_TO_RESOLVE_REFERENCE = "Failed to resolve '%s' reference on PriceDraft with "
         + "country:'%s' and value: '%s'. Reason: %s";
 
     /**
