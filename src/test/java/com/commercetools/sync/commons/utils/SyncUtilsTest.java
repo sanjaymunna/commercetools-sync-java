@@ -3,7 +3,10 @@ package com.commercetools.sync.commons.utils;
 
 import io.sphere.sdk.categories.Category;
 import io.sphere.sdk.categories.CategoryDraft;
+import io.sphere.sdk.categories.CategoryDraftBuilder;
 import io.sphere.sdk.models.Reference;
+import io.sphere.sdk.models.ResourceIdentifier;
+import io.sphere.sdk.types.CustomFieldsDraft;
 import org.junit.Test;
 
 import javax.annotation.Nonnull;
@@ -11,14 +14,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.commercetools.sync.categories.CategorySyncMockUtils.getMockCategoryDraft;
 import static com.commercetools.sync.commons.utils.SyncUtils.batchElements;
 import static com.commercetools.sync.commons.utils.SyncUtils.replaceReferenceIdWithKey;
+import static io.sphere.sdk.models.LocalizedString.ofEnglish;
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -33,8 +35,12 @@ public class SyncUtilsTest {
         final ArrayList<CategoryDraft> categoryDrafts = new ArrayList<>();
 
         for (int i = 0; i < numberOfCategoryDrafts; i++) {
-            categoryDrafts.add(getMockCategoryDraft(Locale.ENGLISH, "name", "key" + i, "parentKey",
-                "customTypeId", new HashMap<>()));
+            categoryDrafts.add(
+                CategoryDraftBuilder.of(ofEnglish("name"), ofEnglish("slug"))
+                                    .key(format("key%s", i))
+                                    .parent(ResourceIdentifier.ofKey("parentKey"))
+                                    .custom(CustomFieldsDraft.ofTypeKeyAndJson("customTypeId", new HashMap<>()))
+                                    .build());
         }
         final List<List<CategoryDraft>> batches = batchElements(categoryDrafts, 10);
         assertThat(batches.size()).isEqualTo(numberOfCategoryDrafts / batchSize);
@@ -109,8 +115,12 @@ public class SyncUtilsTest {
         final ArrayList<CategoryDraft> categoryDrafts = new ArrayList<>();
 
         for (int i = 0; i < numberOfCategoryDrafts; i++) {
-            categoryDrafts.add(getMockCategoryDraft(Locale.ENGLISH, "name", "key" + i, "parentKey",
-                "customTypeId", new HashMap<>()));
+            categoryDrafts.add(
+                CategoryDraftBuilder.of(ofEnglish("name"), ofEnglish("slug"))
+                                    .key(format("key%s", i))
+                                    .parent(ResourceIdentifier.ofKey("parentKey"))
+                                    .custom(CustomFieldsDraft.ofTypeKeyAndJson("customTypeId", new HashMap<>()))
+                                    .build());
         }
         final List<List<CategoryDraft>> batches = batchElements(categoryDrafts, -100);
         assertThat(batches.size()).isEqualTo(0);

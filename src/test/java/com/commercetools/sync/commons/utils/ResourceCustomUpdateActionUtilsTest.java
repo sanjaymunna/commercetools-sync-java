@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sphere.sdk.categories.Category;
 import io.sphere.sdk.categories.CategoryDraft;
+import io.sphere.sdk.categories.CategoryDraftBuilder;
 import io.sphere.sdk.categories.commands.updateactions.SetCustomField;
 import io.sphere.sdk.categories.commands.updateactions.SetCustomType;
 import io.sphere.sdk.client.SphereClient;
@@ -36,6 +37,7 @@ import static com.commercetools.sync.commons.utils.CustomUpdateActionUtils.build
 import static com.commercetools.sync.commons.utils.CustomUpdateActionUtils.buildRemovedCustomFieldsUpdateActions;
 import static com.commercetools.sync.commons.utils.CustomUpdateActionUtils.buildPrimaryResourceCustomUpdateActions;
 import static com.commercetools.sync.commons.utils.CustomUpdateActionUtils.buildSetCustomFieldsUpdateActions;
+import static io.sphere.sdk.models.LocalizedString.ofEnglish;
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -95,8 +97,16 @@ public class ResourceCustomUpdateActionUtilsTest {
         final Category oldCategory = mock(Category.class);
         when(oldCategory.getCustom()).thenReturn(null);
 
-        final CategoryDraft newCategoryDraft = CategorySyncMockUtils.getMockCategoryDraft(Locale.ENGLISH, "name",
-            "key", "parentId", "customTypeId", new HashMap<>());
+        // A reference-resolved category draft
+        final CategoryDraft newCategoryDraft =
+            CategoryDraftBuilder.of(ofEnglish("name"), ofEnglish("slug"))
+                                .key("key")
+                                .parent(
+                                    Category.referenceOfId(UUID.randomUUID().toString()).toResourceIdentifier())
+                                .custom(
+                                    CustomFieldsDraft.ofTypeIdAndJson(UUID.randomUUID().toString(), new HashMap<>()))
+                                .build();
+
         final List<UpdateAction<Category>> updateActions =
             buildPrimaryResourceCustomUpdateActions(oldCategory, newCategoryDraft, new CategoryCustomActionBuilder(),
                 categorySyncOptions);
@@ -104,7 +114,6 @@ public class ResourceCustomUpdateActionUtilsTest {
         // Should add custom type to old category.
         assertThat(errorMessages).isEmpty();
         assertThat(exceptions).isEmpty();
-        assertThat(updateActions).isNotNull();
         assertThat(updateActions).hasSize(1);
         assertThat(updateActions.get(0)).isInstanceOf(SetCustomType.class);
     }
