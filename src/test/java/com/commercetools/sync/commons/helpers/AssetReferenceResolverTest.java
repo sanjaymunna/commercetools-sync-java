@@ -76,7 +76,6 @@ public class AssetReferenceResolverTest {
         final AssetReferenceResolver assetReferenceResolver = new AssetReferenceResolver(syncOptions, typeService);
 
         assertThat(assetReferenceResolver.resolveCustomTypeReference(assetDraftBuilder).toCompletableFuture())
-            .hasFailed()
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve custom type reference on AssetDraft with key:'assetKey'. Reason: %s",
@@ -93,7 +92,6 @@ public class AssetReferenceResolverTest {
         final AssetReferenceResolver assetReferenceResolver = new AssetReferenceResolver(syncOptions, typeService);
 
         assertThat(assetReferenceResolver.resolveCustomTypeReference(assetDraftBuilder).toCompletableFuture())
-            .hasFailed()
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve custom type reference on AssetDraft with key:'assetKey'. Reason: %s",
@@ -115,7 +113,6 @@ public class AssetReferenceResolverTest {
         final AssetReferenceResolver assetReferenceResolver = new AssetReferenceResolver(syncOptions, typeService);
 
         assertThat(assetReferenceResolver.resolveCustomTypeReference(assetDraftBuilder).toCompletableFuture())
-            .hasFailed()
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(SphereException.class)
             .hasMessageContaining("CTP error on fetch");

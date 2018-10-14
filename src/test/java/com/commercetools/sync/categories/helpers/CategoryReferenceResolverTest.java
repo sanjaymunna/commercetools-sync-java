@@ -36,6 +36,7 @@ import static com.commercetools.sync.categories.helpers.CategoryReferenceResolve
 import static com.commercetools.sync.categories.helpers.CategoryReferenceResolver.FAILED_TO_RESOLVE_PARENT;
 import static com.commercetools.sync.categories.helpers.CategoryReferenceResolver.PARENT_CATEGORY_DOES_NOT_EXIST;
 import static com.commercetools.sync.commons.MockUtils.getMockTypeService;
+
 import static com.commercetools.sync.commons.helpers.BaseReferenceResolver.BLANK_KEY_VALUE_ON_RESOURCE_IDENTIFIER;
 import static com.commercetools.sync.commons.helpers.CustomReferenceResolver.TYPE_DOES_NOT_EXIST;
 import static io.sphere.sdk.models.LocalizedString.ofEnglish;
