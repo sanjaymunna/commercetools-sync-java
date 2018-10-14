@@ -102,8 +102,7 @@ public class TaxCategoryReferenceResolverTest {
             .taxCategory(Reference.of(TaxCategory.referenceTypeId(), (String)null))
             .key("dummyKey");
 
-        assertThat(referenceResolver.resolveTaxCategoryReference(productBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(referenceResolver.resolveTaxCategoryReference(productBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve reference 'tax-category' on ProductDraft with "
@@ -116,8 +115,7 @@ public class TaxCategoryReferenceResolverTest {
             .taxCategory(TaxCategory.referenceOfId(""))
             .key("dummyKey");
 
-        assertThat(referenceResolver.resolveTaxCategoryReference(productBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(referenceResolver.resolveTaxCategoryReference(productBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve reference 'tax-category' on ProductDraft with "
@@ -134,8 +132,7 @@ public class TaxCategoryReferenceResolverTest {
         futureThrowingSphereException.completeExceptionally(new SphereException("CTP error on fetch"));
         when(taxCategoryService.fetchCachedTaxCategoryId(anyString())).thenReturn(futureThrowingSphereException);
 
-        assertThat(referenceResolver.resolveTaxCategoryReference(productBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(referenceResolver.resolveTaxCategoryReference(productBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(SphereException.class)
             .hasMessageContaining("CTP error on fetch");

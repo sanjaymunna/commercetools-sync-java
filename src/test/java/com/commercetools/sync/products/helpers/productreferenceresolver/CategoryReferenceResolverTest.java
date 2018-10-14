@@ -201,8 +201,7 @@ public class CategoryReferenceResolverTest {
             getMockProductService(PRODUCT_ID));
 
         // test and assertion
-        assertThat(productReferenceResolver.resolveCategoryReferences(productBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(productReferenceResolver.resolveCategoryReferences(productBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage("Failed to resolve reference 'category' on ProductDraft"
@@ -226,8 +225,7 @@ public class CategoryReferenceResolverTest {
             getMockProductService(PRODUCT_ID));
 
         // test and assertion
-        assertThat(productReferenceResolver.resolveCategoryReferences(productBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(productReferenceResolver.resolveCategoryReferences(productBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve reference 'category' on ProductDraft with "
@@ -250,8 +248,7 @@ public class CategoryReferenceResolverTest {
             getMockProductService(PRODUCT_ID));
 
         // test and assertion
-        assertThat(productReferenceResolver.resolveCategoryReferences(productBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(productReferenceResolver.resolveCategoryReferences(productBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve reference 'category' on ProductDraft with "
@@ -281,13 +278,9 @@ public class CategoryReferenceResolverTest {
             getMockProductService(PRODUCT_ID));
 
         // test and assertion
-        assertThat(productReferenceResolver.resolveCategoryReferences(productBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(productReferenceResolver.resolveCategoryReferences(productBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(SphereException.class)
             .hasMessageContaining("CTP error on fetch");
     }
-
-
-
 }

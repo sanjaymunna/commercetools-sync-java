@@ -93,8 +93,7 @@ public class ProductTypeReferenceResolverTest {
             Reference.of(ProductType.referenceTypeId(), (String)null))
             .key("dummyKey");
 
-        assertThat(referenceResolver.resolveProductTypeReference(productBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(referenceResolver.resolveProductTypeReference(productBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve product type reference on ProductDraft"
@@ -106,8 +105,7 @@ public class ProductTypeReferenceResolverTest {
         final ProductDraftBuilder productBuilder = getBuilderWithProductTypeRefId("")
             .key("dummyKey");
 
-        assertThat(referenceResolver.resolveProductTypeReference(productBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(referenceResolver.resolveProductTypeReference(productBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve product type reference on ProductDraft"
@@ -123,8 +121,7 @@ public class ProductTypeReferenceResolverTest {
         futureThrowingSphereException.completeExceptionally(new SphereException("CTP error on fetch"));
         when(productTypeService.fetchCachedProductTypeId(anyString())).thenReturn(futureThrowingSphereException);
 
-        assertThat(referenceResolver.resolveProductTypeReference(productBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(referenceResolver.resolveProductTypeReference(productBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(SphereException.class)
             .hasMessageContaining("CTP error on fetch");

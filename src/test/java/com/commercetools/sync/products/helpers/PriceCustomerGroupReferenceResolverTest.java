@@ -94,8 +94,7 @@ public class PriceCustomerGroupReferenceResolverTest {
             .of(MoneyImpl.of(BigDecimal.TEN, DefaultCurrencyUnits.EUR))
             .customerGroup(Reference.of(CustomerGroup.referenceTypeId(), (String)null));
 
-        assertThat(referenceResolver.resolveCustomerGroupReference(priceBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(referenceResolver.resolveCustomerGroupReference(priceBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve 'customer-group' reference on PriceDraft with country:'%s' and"
@@ -109,8 +108,7 @@ public class PriceCustomerGroupReferenceResolverTest {
             .of(MoneyImpl.of(BigDecimal.TEN, DefaultCurrencyUnits.EUR))
             .customerGroup(CustomerGroup.referenceOfId(""));
 
-        assertThat(referenceResolver.resolveCustomerGroupReference(priceBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(referenceResolver.resolveCustomerGroupReference(priceBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve 'customer-group' reference on PriceDraft with country:'%s' and"
@@ -128,8 +126,7 @@ public class PriceCustomerGroupReferenceResolverTest {
         futureThrowingSphereException.completeExceptionally(new SphereException("CTP error on fetch"));
         when(customerGroupService.fetchCachedCustomerGroupId(anyString())).thenReturn(futureThrowingSphereException);
 
-        assertThat(referenceResolver.resolveCustomerGroupReference(priceBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(referenceResolver.resolveCustomerGroupReference(priceBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(SphereException.class)
             .hasMessageContaining("CTP error on fetch");

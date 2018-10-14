@@ -99,8 +99,7 @@ public class PriceReferenceResolverTest {
         final PriceReferenceResolver priceReferenceResolver =
             new PriceReferenceResolver(syncOptions, typeService, channelService, customerGroupService);
 
-        assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve custom type reference on PriceDraft"
@@ -118,8 +117,7 @@ public class PriceReferenceResolverTest {
         final PriceReferenceResolver priceReferenceResolver =
             new PriceReferenceResolver(syncOptions, typeService, channelService, customerGroupService);
 
-        assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve custom type reference on PriceDraft"
@@ -142,8 +140,7 @@ public class PriceReferenceResolverTest {
         final PriceReferenceResolver priceReferenceResolver =
             new PriceReferenceResolver(syncOptions, typeService, channelService, customerGroupService);
 
-        assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(priceReferenceResolver.resolveCustomTypeReference(priceBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(SphereException.class)
             .hasMessageContaining("CTP error on fetch");

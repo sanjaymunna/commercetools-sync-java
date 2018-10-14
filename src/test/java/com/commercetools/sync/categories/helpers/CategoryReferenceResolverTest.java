@@ -203,9 +203,7 @@ public class CategoryReferenceResolverTest {
                                                                        .parent(ResourceIdentifier.ofKey(null));
 
         // Test and assertion
-        assertThat(referenceResolver.resolveParentReference(categoryDraft)
-                                    .toCompletableFuture())
-            .hasFailed()
+        assertThat(referenceResolver.resolveParentReference(categoryDraft))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve parent reference on CategoryDraft with key:'key'. Reason: %s",
@@ -300,9 +298,7 @@ public class CategoryReferenceResolverTest {
         final CategoryDraftBuilder categoryDraft = getMockCategoryDraftBuilder(Locale.ENGLISH, "myDraft", "key",
             null, CustomFieldsDraft.ofTypeKeyAndJson("", emptyMap()));
 
-        assertThat(referenceResolver.resolveCustomTypeReference(categoryDraft)
-                                    .toCompletableFuture())
-            .hasFailed()
+        assertThat(referenceResolver.resolveCustomTypeReference(categoryDraft))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve custom type reference on CategoryDraft with key:'key'. Reason: %s",

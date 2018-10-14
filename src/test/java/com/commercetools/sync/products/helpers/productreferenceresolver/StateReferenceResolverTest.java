@@ -102,8 +102,7 @@ public class StateReferenceResolverTest {
             .state(Reference.of(State.referenceTypeId(), (String)null))
             .key("dummyKey");
 
-        assertThat(referenceResolver.resolveStateReference(productBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(referenceResolver.resolveStateReference(productBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve reference 'state' on ProductDraft with "
@@ -116,8 +115,7 @@ public class StateReferenceResolverTest {
             .state(State.referenceOfId(""))
             .key("dummyKey");
 
-        assertThat(referenceResolver.resolveStateReference(productBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(referenceResolver.resolveStateReference(productBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(ReferenceResolutionException.class)
             .hasMessage(format("Failed to resolve reference 'state' on ProductDraft with "
@@ -134,8 +132,7 @@ public class StateReferenceResolverTest {
         futureThrowingSphereException.completeExceptionally(new SphereException("CTP error on fetch"));
         when(stateService.fetchCachedStateId(anyString())).thenReturn(futureThrowingSphereException);
 
-        assertThat(referenceResolver.resolveStateReference(productBuilder).toCompletableFuture())
-            .hasFailed()
+        assertThat(referenceResolver.resolveStateReference(productBuilder))
             .hasFailedWithThrowableThat()
             .isExactlyInstanceOf(SphereException.class)
             .hasMessageContaining("CTP error on fetch");
