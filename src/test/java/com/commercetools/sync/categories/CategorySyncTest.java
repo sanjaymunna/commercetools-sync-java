@@ -8,6 +8,8 @@ import io.sphere.sdk.categories.CategoryDraft;
 import io.sphere.sdk.categories.CategoryDraftBuilder;
 import io.sphere.sdk.client.SphereClient;
 import io.sphere.sdk.models.LocalizedString;
+import io.sphere.sdk.models.ResourceIdentifier;
+import io.sphere.sdk.types.CustomFieldsDraft;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,6 +29,7 @@ import static com.commercetools.sync.commons.MockUtils.getMockTypeService;
 import static com.commercetools.sync.commons.MockUtils.mockCategoryService;
 import static com.commercetools.sync.commons.asserts.statistics.AssertionsForStatistics.assertThat;
 import static com.commercetools.sync.commons.helpers.BaseReferenceResolver.BLANK_KEY_VALUE_ON_RESOURCE_IDENTIFIER;
+import static io.sphere.sdk.models.LocalizedString.ofEnglish;
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
@@ -117,8 +120,13 @@ public class CategorySyncTest {
         final CategoryService mockCategoryService = mockCategoryService(emptySet(), singleton(mockCategory));
         final CategorySync mockCategorySync =
             new CategorySync(categorySyncOptions, getMockTypeService(), mockCategoryService);
+
         final List<CategoryDraft> categoryDrafts = singletonList(
-            getMockCategoryDraft(Locale.ENGLISH, "name", "newKey", "parentKey", "customTypeId", new HashMap<>()));
+            CategoryDraftBuilder.of(ofEnglish("name"), ofEnglish("slug"))
+                                .key("newKey")
+                                .parent(ResourceIdentifier.ofKey("parentKey"))
+                                .custom(CustomFieldsDraft.ofTypeKeyAndJson("customTypeKey", new HashMap<>()))
+                                .build());
 
         final CategorySyncStatistics syncStatistics = mockCategorySync.sync(categoryDrafts)
                                                                       .toCompletableFuture().join();
@@ -135,8 +143,13 @@ public class CategorySyncTest {
             mockCategoryService(singleton(mockCategory), emptySet(), mockCategory);
         final CategorySync mockCategorySync =
             new CategorySync(categorySyncOptions, getMockTypeService(), mockCategoryService);
+
         final List<CategoryDraft> categoryDrafts = singletonList(
-            getMockCategoryDraft(Locale.ENGLISH, "name", "key", "parentKey", "customTypeId", new HashMap<>()));
+            CategoryDraftBuilder.of(ofEnglish("name"), ofEnglish("slug"))
+                                .key("key")
+                                .parent(ResourceIdentifier.ofKey("parentKey"))
+                                .custom(CustomFieldsDraft.ofTypeKeyAndJson("customTypeKey", new HashMap<>()))
+                                .build());
 
         final CategorySyncStatistics syncStatistics = mockCategorySync.sync(categoryDrafts)
                                                                       .toCompletableFuture().join();
@@ -165,14 +178,17 @@ public class CategorySyncTest {
     }
 
     @Test
-    public void sync_WithExistingCategoryButWithNullParentReference_ShouldFailSync() {
+    public void sync_WithExistingCategoryButWithNullParentKey_ShouldFailSync() {
         final Category mockCategory = getMockCategory(UUID.randomUUID().toString(), "key");
         final CategoryService mockCategoryService =
             mockCategoryService(singleton(mockCategory), emptySet(), mockCategory);
         final CategorySync categorySync = new CategorySync(categorySyncOptions, getMockTypeService(),
             mockCategoryService);
         final List<CategoryDraft> categoryDrafts = singletonList(
-            getMockCategoryDraft(Locale.ENGLISH, "name", "key", null,"customTypeId", new HashMap<>()));
+            CategoryDraftBuilder.of(ofEnglish("name"), ofEnglish("slug"))
+                                .key("key")
+                                .parent(ResourceIdentifier.ofKey(null))
+                                .build());
 
         final CategorySyncStatistics syncStatistics = categorySync.sync(categoryDrafts).toCompletableFuture().join();
 
@@ -209,15 +225,17 @@ public class CategorySyncTest {
     }
 
     @Test
-    public void sync_WithExistingCategoryButWithEmptyParentReference_ShouldFailSync() {
+    public void sync_WithExistingCategoryButWithEmptyParentKey_ShouldFailSync() {
         final Category mockCategory = getMockCategory(UUID.randomUUID().toString(), "key");
         final CategoryService mockCategoryService =
             mockCategoryService(singleton(mockCategory), emptySet(), mockCategory);
         final CategorySync categorySync = new CategorySync(categorySyncOptions, getMockTypeService(),
             mockCategoryService);
         final List<CategoryDraft> categoryDrafts = singletonList(
-            getMockCategoryDraft(Locale.ENGLISH, "name", "key", "",
-            "customTypeId", new HashMap<>()));
+            CategoryDraftBuilder.of(ofEnglish("name"), ofEnglish("slug"))
+                                .key("key")
+                                .parent(ResourceIdentifier.ofKey(""))
+                                .build());
 
         final CategorySyncStatistics syncStatistics = categorySync.sync(categoryDrafts).toCompletableFuture().join();
 
@@ -232,15 +250,17 @@ public class CategorySyncTest {
     }
 
     @Test
-    public void sync_WithExistingCategoryButWithEmptyCustomTypeReference_ShouldFailSync() {
+    public void sync_WithExistingCategoryButWithEmptyCustomTypeKey_ShouldFailSync() {
         final Category mockCategory = getMockCategory(UUID.randomUUID().toString(), "key");
         final CategoryService mockCategoryService =
             mockCategoryService(singleton(mockCategory), emptySet(), mockCategory);
         final CategorySync categorySync = new CategorySync(categorySyncOptions, getMockTypeService(),
             mockCategoryService);
         final List<CategoryDraft> categoryDrafts = singletonList(
-            getMockCategoryDraft(Locale.ENGLISH, "name", "key", "parentKey",
-                "", new HashMap<>()));
+            CategoryDraftBuilder.of(ofEnglish("name"), ofEnglish("slug"))
+                                .key("key")
+                                .custom(CustomFieldsDraft.ofTypeKeyAndJson("", new HashMap<>()))
+                                .build());
 
         final CategorySyncStatistics syncStatistics = categorySync.sync(categoryDrafts).toCompletableFuture().join();
 
