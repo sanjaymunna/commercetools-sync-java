@@ -9,6 +9,7 @@ import com.commercetools.sync.services.CustomerGroupService;
 import com.commercetools.sync.services.ProductTypeService;
 import io.sphere.sdk.client.SphereClient;
 import io.sphere.sdk.models.Reference;
+import io.sphere.sdk.models.ResourceIdentifier;
 import io.sphere.sdk.models.SphereException;
 import io.sphere.sdk.products.ProductDraftBuilder;
 import io.sphere.sdk.producttypes.ProductType;
@@ -24,7 +25,7 @@ import static com.commercetools.sync.commons.helpers.BaseReferenceResolver.BLANK
 import static com.commercetools.sync.inventories.InventorySyncMockUtils.getMockChannelService;
 import static com.commercetools.sync.inventories.InventorySyncMockUtils.getMockSupplyChannel;
 import static com.commercetools.sync.products.ProductSyncMockUtils.getBuilderWithProductTypeRef;
-import static com.commercetools.sync.products.ProductSyncMockUtils.getBuilderWithProductTypeRefId;
+import static com.commercetools.sync.products.ProductSyncMockUtils.getBuilderWithProductTypeResId;
 import static com.commercetools.sync.products.ProductSyncMockUtils.getMockProductService;
 import static com.commercetools.sync.products.ProductSyncMockUtils.getMockProductTypeService;
 import static com.commercetools.sync.products.ProductSyncMockUtils.getMockStateService;
@@ -63,7 +64,8 @@ public class ProductTypeReferenceResolverTest {
 
     @Test
     public void resolveProductTypeReference_WithKeys_ShouldResolveReference() {
-        final ProductDraftBuilder productBuilder = getBuilderWithProductTypeRefId("productTypeKey");
+        final ProductDraftBuilder productBuilder = getBuilderWithProductTypeResId(
+            ResourceIdentifier.ofKey("productTypeKey"));
 
         final ProductDraftBuilder resolvedDraft = referenceResolver.resolveProductTypeReference(productBuilder)
                                                                    .toCompletableFuture().join();
@@ -74,8 +76,9 @@ public class ProductTypeReferenceResolverTest {
 
     @Test
     public void resolveProductTypeReference_WithNonExistentProductType_ShouldNotResolveReference() {
-        final ProductDraftBuilder productBuilder = getBuilderWithProductTypeRefId("anyKey")
-            .key("dummyKey");
+        final ProductDraftBuilder productBuilder =
+            getBuilderWithProductTypeResId(ResourceIdentifier.ofKey("productTypeKey"))
+                .key("dummyKey");
 
         when(productTypeService.fetchCachedProductTypeId(anyString()))
             .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
@@ -102,8 +105,9 @@ public class ProductTypeReferenceResolverTest {
 
     @Test
     public void resolveProductTypeReference_WithEmptyIdOnProductTypeReference_ShouldNotResolveReference() {
-        final ProductDraftBuilder productBuilder = getBuilderWithProductTypeRefId("")
-            .key("dummyKey");
+        final ProductDraftBuilder productBuilder =
+            getBuilderWithProductTypeResId(ResourceIdentifier.ofKey(""))
+                .key("dummyKey");
 
         assertThat(referenceResolver.resolveProductTypeReference(productBuilder))
             .hasFailedWithThrowableThat()
@@ -114,8 +118,9 @@ public class ProductTypeReferenceResolverTest {
 
     @Test
     public void resolveProductTypeReference_WithExceptionOnProductTypeFetch_ShouldNotResolveReference() {
-        final ProductDraftBuilder productBuilder = getBuilderWithProductTypeRefId(PRODUCT_TYPE_ID)
-            .key("dummyKey");
+        final ProductDraftBuilder productBuilder =
+            getBuilderWithProductTypeResId(ResourceIdentifier.ofKey("productTypeKey"))
+                .key("dummyKey");
 
         final CompletableFuture<Optional<String>> futureThrowingSphereException = new CompletableFuture<>();
         futureThrowingSphereException.completeExceptionally(new SphereException("CTP error on fetch"));

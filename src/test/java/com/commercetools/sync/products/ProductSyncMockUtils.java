@@ -14,6 +14,7 @@ import io.sphere.sdk.customergroups.CustomerGroup;
 import io.sphere.sdk.models.Asset;
 import io.sphere.sdk.models.LocalizedString;
 import io.sphere.sdk.models.Reference;
+import io.sphere.sdk.models.ResourceIdentifier;
 import io.sphere.sdk.products.CategoryOrderHints;
 import io.sphere.sdk.products.Price;
 import io.sphere.sdk.products.Product;
@@ -381,8 +382,9 @@ public class ProductSyncMockUtils {
     }
 
     @Nonnull
-    public static ProductDraftBuilder getBuilderWithProductTypeRefId(@Nonnull final String refId) {
-        return ProductDraftBuilder.of(ProductType.referenceOfId(refId),
+    public static ProductDraftBuilder getBuilderWithProductTypeResId(
+        @Nonnull final ResourceIdentifier<ProductType> productTypeResourceIdentifier) {
+        return ProductDraftBuilder.of(productTypeResourceIdentifier,
             LocalizedString.ofEnglish("testName"),
             LocalizedString.ofEnglish("testSlug"),
             (ProductVariantDraft)null);
@@ -390,7 +392,7 @@ public class ProductSyncMockUtils {
 
     @Nonnull
     public static ProductDraftBuilder getBuilderWithRandomProductTypeUuid() {
-        return getBuilderWithProductTypeRefId(UUID.randomUUID().toString());
+        return getBuilderWithProductTypeResId(ResourceIdentifier.ofId(UUID.randomUUID().toString()));
     }
 
     @Nonnull

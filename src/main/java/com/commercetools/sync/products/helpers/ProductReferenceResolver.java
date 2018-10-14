@@ -53,6 +53,8 @@ public final class ProductReferenceResolver extends BaseReferenceResolver<Produc
     private static final String FAILED_TO_RESOLVE_REFERENCE = "Failed to resolve reference '%s' on ProductDraft with "
         + "key:'%s'. Reason: %s";
 
+    static final String PRODUCT_TYPE_DOES_NOT_EXIST = "ProductType with key '%s' doesn't exist.";
+
     /**
      * Takes a {@link ProductSyncOptions} instance, a {@link ProductTypeService}, a {@link CategoryService}, a
      * {@link TypeService}, a {@link ChannelService}, a {@link CustomerGroupService}, a {@link TaxCategoryService},
@@ -148,14 +150,21 @@ public final class ProductReferenceResolver extends BaseReferenceResolver<Produc
         @Nonnull final ProductDraftBuilder draftBuilder) {
 
         final ResourceIdentifier<ProductType> productTypeResourceIdentifier = draftBuilder.getProductType();
-        final String resolutionErrorMessage = format(FAILED_TO_RESOLVE_PRODUCT_TYPE, draftBuilder.getKey());
 
-        return getProductTypeId(productTypeResourceIdentifier, resolutionErrorMessage)
-            .thenApply(resolvedProductTypeIdOptional -> {
-                resolvedProductTypeIdOptional.ifPresent(resolvedTypeId -> draftBuilder
-                    .productType(ResourceIdentifier.ofId(resolvedTypeId, ProductType.referenceTypeId())));
-                return draftBuilder;
-            });
+        if (productTypeResourceIdentifier.getId() == null) {
+
+            String productTypeKey;
+
+            try {
+                productTypeKey = getProductTypeKey(productTypeResourceIdentifier,
+                    format(FAILED_TO_RESOLVE_PRODUCT_TYPE, draftBuilder.getKey()));
+            } catch (ReferenceResolutionException referenceResolutionException) {
+                return exceptionallyCompletedFuture(referenceResolutionException);
+            }
+
+            return fetchAndResolveProductTypeReference(draftBuilder, productTypeKey);
+        }
+        return completedFuture(draftBuilder);
     }
 
     /**
@@ -227,6 +236,34 @@ public final class ProductReferenceResolver extends BaseReferenceResolver<Produc
     /**
      * Given a {@link ProductType} this method fetches the product type reference id.
      *
+     * @return a {@link CompletionStage} that contains as a result an optional which either contains the custom type id
+     *         if it exists or empty if it doesn't.
+     */
+    @Nonnull
+    private CompletionStage<ProductDraftBuilder> fetchAndResolveProductTypeReference(
+        @Nonnull final ProductDraftBuilder draftBuilder,
+        @Nonnull final String productTypeKey) {
+
+        return productTypeService
+            .fetchCachedProductTypeId(productTypeKey)
+            .thenCompose(resolvedProductTypeIdOptional -> resolvedProductTypeIdOptional
+                .map(resolvedProductTypeId ->
+                    completedFuture(draftBuilder.productType(ProductType.referenceOfId(resolvedProductTypeId)
+                                                                        .toResourceIdentifier())))
+                .orElseGet(() -> {
+                    final String mainErrorMessage = format(FAILED_TO_RESOLVE_PRODUCT_TYPE, draftBuilder.getKey());
+                    final String errorMessage =
+                        format("%s Reason: %s", mainErrorMessage, format(PRODUCT_TYPE_DOES_NOT_EXIST,
+                            productTypeKey));
+                    return exceptionallyCompletedFuture(new ReferenceResolutionException(errorMessage));
+                }));
+
+
+    }
+
+    /**
+     * Given a {@link ProductType} this method fetches the product type reference id.
+     *TODO
      * @param productTypeResourceIdentifier   the productType ResourceIdentifier object.
      * @param referenceResolutionErrorMessage the message containing the information about the draft to attach to the
      *                                        {@link ReferenceResolutionException} in case it occurs.
@@ -234,16 +271,14 @@ public final class ProductReferenceResolver extends BaseReferenceResolver<Produc
      *         if it exists or empty if it doesn't.
      */
     @Nonnull
-    private CompletionStage<Optional<String>> getProductTypeId(
-            @Nonnull final ResourceIdentifier<ProductType> productTypeResourceIdentifier,
-            @Nonnull final String referenceResolutionErrorMessage) {
+    private static String getProductTypeKey(
+        @Nonnull final ResourceIdentifier<ProductType> productTypeResourceIdentifier,
+        @Nonnull final String referenceResolutionErrorMessage) throws ReferenceResolutionException {
         try {
-            final String productTypeKey = getKeyFromResourceIdentifier(productTypeResourceIdentifier);
-            return productTypeService.fetchCachedProductTypeId(productTypeKey);
+            return getKeyFromResourceIdentifier(productTypeResourceIdentifier);
         } catch (ReferenceResolutionException exception) {
-            return exceptionallyCompletedFuture(
-                new ReferenceResolutionException(
-                    format("%s Reason: %s", referenceResolutionErrorMessage, exception.getMessage()), exception));
+            throw new ReferenceResolutionException(
+                format("%s Reason: %s", referenceResolutionErrorMessage, exception.getMessage()), exception);
         }
     }
 
@@ -316,11 +351,18 @@ public final class ProductReferenceResolver extends BaseReferenceResolver<Produc
         }
 
         return keyToIdMapper.apply(resourceKey)
-                            .thenApply(optId -> optId
+                            .thenCompose(optId -> optId
                                 .map(idToReferenceMapper)
-                                .map(referenceToSet -> referenceSetter.apply(draftBuilder, referenceToSet))
+                                .map(referenceToSet ->
+                                    completedFuture(referenceSetter.apply(draftBuilder, referenceToSet)))
                                 //throw
-                                .orElse(draftBuilder));
+                                .orElseGet(() -> {
+                                    // Referenced resource doesn't exist.
+                                    final String errorMessage = format(FAILED_TO_RESOLVE_REFERENCE,
+                                        reference.getTypeId(), draftBuilder.getKey(),
+                                        format("%s with key '%s' doesn't exist.", reference.getTypeId(), resourceKey));
+                                    return exceptionallyCompletedFuture(new ReferenceResolutionException(errorMessage));
+                                }));
     }
 
 }
